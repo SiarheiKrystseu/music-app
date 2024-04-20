@@ -108,6 +108,9 @@ class SongServiceImplTest {
         List<Integer> ids = List.of(1, 2, 3);
         List<Long> idList = List.of(1L, 2L, 3L);
         doNothing().when(songRepository).deleteAllById(idList);
+        when(songRepository.existsById(1L)).thenReturn(true);
+        when(songRepository.existsById(2L)).thenReturn(true);
+        when(songRepository.existsById(3L)).thenReturn(true);
 
         // Test
         List<Integer> deletedIds = songService.deleteSongs(ids);
