@@ -62,6 +62,11 @@ public class SongServiceImpl implements SongService {
     @Override
     public List<Integer> deleteSongs(List<Integer> ids) {
         List<Long> idList = ids.stream().map(Long::valueOf).toList();
+        for(Long id : idList) {
+            if(!songRepository.existsById(id)) {
+                throw new SongNotFoundException("Song with id " + id + " not found");
+            }
+        }
         songRepository.deleteAllById(idList);
         return ids;
     }

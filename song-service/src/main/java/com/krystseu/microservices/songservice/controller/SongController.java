@@ -1,6 +1,7 @@
 package com.krystseu.microservices.songservice.controller;
 
 import com.krystseu.microservices.songservice.dto.SongDTO;
+import com.krystseu.microservices.songservice.exception.SongNotFoundException;
 import com.krystseu.microservices.songservice.service.SongService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +73,8 @@ public class SongController {
         try {
             List<Integer> deletedIds = songService.deleteSongs(ids);
             return ResponseEntity.ok().body(Collections.singletonMap("ids", deletedIds));
+        } catch (SongNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

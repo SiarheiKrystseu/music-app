@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.krystseu.microservices.songservice.dto.SongDTO;
+import com.krystseu.microservices.songservice.exception.SongNotFoundException;
 import com.krystseu.microservices.songservice.model.Song;
 import com.krystseu.microservices.songservice.repository.SongRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,5 +116,27 @@ class SongServiceImplTest {
         assertNotNull(deletedIds);
         assertEquals(ids.size(), deletedIds.size());
         assertTrue(deletedIds.containsAll(ids));
+    }
+
+    @Test
+    void testDeleteSongs_SongNotFoundException() {
+        // Mock data
+        List<Integer> ids = List.of(1, 2, 3);
+        List<Long> idList = List.of(1L, 2L, 3L);
+
+        // Mock behavior
+        when(songRepository.existsById(1L)).thenReturn(true);
+        when(songRepository.existsById(2L)).thenReturn(true);
+        when(songRepository.existsById(3L)).thenReturn(false); // One song does not exist
+
+        // Test
+        Exception exception = assertThrows(SongNotFoundException.class, () -> {
+            songService.deleteSongs(ids);
+        });
+
+        // Assertions
+        String expectedMessage = "Song with id 3 not found";
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 }
