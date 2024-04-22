@@ -1,0 +1,8 @@
+apply plugin: 'java'
+
+dependencies {
+	implementation 'org.apache.tika:tika-core:2.9.2'
+	implementation 'org.apache.tika:tika-parser-audiovideo-module:2.9.2'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation project(':song-service')
+}
