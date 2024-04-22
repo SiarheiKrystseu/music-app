@@ -1,13 +1,13 @@
 package com.krystseu.microservices.songservice.service.impl;
 
-import com.krystseu.microservices.songservice.dto.SongDTO;
+import com.krystseu.microservices.songservice.dto.SongRequest;
+import com.krystseu.microservices.songservice.dto.SongResponse;
 import com.krystseu.microservices.songservice.exception.SongNotFoundException;
 import com.krystseu.microservices.songservice.model.Song;
 import com.krystseu.microservices.songservice.repository.SongRepository;
 import com.krystseu.microservices.songservice.service.SongService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,41 +27,52 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public List<SongDTO> getAllSongs() {
+    public List<SongResponse> getAllSongs() {
         List<Song> songs = songRepository.findAll();
         return songs.stream()
-                .map(this::convertToDTO).toList();
+                .map(this::convertToSongResponse).toList();
     }
 
     @Override
-    public Optional<SongDTO> getSongById(Integer id) {
-        Optional<Song> optionalSong = songRepository.findById(Long.valueOf(id));
-        return optionalSong.map(this::convertToDTO);
+    public Optional<SongResponse> getSongById(Long id) {
+        Optional<Song> optionalSong = songRepository.findById(id);
+        return optionalSong.map(this::convertToSongResponse);
     }
 
     @Override
-    public SongDTO createSong(SongDTO songDTO) {
-        Song song = convertToEntity(songDTO);
+    public SongResponse createSong(SongRequest songRequest) {
+        Song song = convertToEntity(songRequest);
         Song createdSong = songRepository.save(song);
-        return convertToDTO(createdSong);
+        return convertToSongResponse(createdSong);
     }
 
     @Override
-    public SongDTO updateSong(Long id, SongDTO updatedSongDTO) {
+    public SongResponse updateSong(Long id, SongRequest updatedSongRequest) {
         Optional<Song> optionalExistingSong = songRepository.findById(id);
         if (optionalExistingSong.isPresent()) {
             Song existingSong = optionalExistingSong.get();
-            BeanUtils.copyProperties(updatedSongDTO, existingSong);
-            Song updatedSong = songRepository.save(existingSong);
-            return convertToDTO(updatedSong);
+
+            // Update properties using builder pattern
+            Song updatedSong = Song.builder()
+                    .id(existingSong.getId())
+                    .name(updatedSongRequest.getName())
+                    .artist(updatedSongRequest.getArtist())
+                    .album(updatedSongRequest.getAlbum())
+                    .length(updatedSongRequest.getLength())
+                    .resourceId(updatedSongRequest.getResourceId())
+                    .year(updatedSongRequest.getYear())
+                    .build();
+
+            updatedSong = songRepository.save(updatedSong);
+            return convertToSongResponse(updatedSong);
         } else {
             throw new SongNotFoundException("Song not found with id: " + id);
         }
     }
 
     @Override
-    public List<Integer> deleteSongs(List<Integer> ids) {
-        List<Long> idList = ids.stream().map(Long::valueOf).toList();
+    public List<Long> deleteSongs(List<Long> ids) {
+        List<Long> idList = ids.stream().toList();
         for(Long id : idList) {
             if(!songRepository.existsById(id)) {
                 throw new SongNotFoundException("Song with id " + id + " not found");
@@ -71,15 +82,26 @@ public class SongServiceImpl implements SongService {
         return ids;
     }
 
-    private SongDTO convertToDTO(Song song) {
-        SongDTO songDTO = new SongDTO();
-        BeanUtils.copyProperties(song, songDTO);
-        return songDTO;
+    private SongResponse convertToSongResponse(Song song) {
+        return SongResponse.builder()
+                .id(song.getId())
+                .name(song.getName())
+                .artist(song.getArtist())
+                .album(song.getAlbum())
+                .length(song.getLength())
+                .resourceId(song.getResourceId())
+                .year(song.getYear())
+                .build();
     }
 
-    private Song convertToEntity(SongDTO songDTO) {
-        Song song = new Song();
-        BeanUtils.copyProperties(songDTO, song);
-        return song;
+    private Song convertToEntity(SongRequest songRequest) {
+        return Song.builder()
+                .name(songRequest.getName())
+                .artist(songRequest.getArtist())
+                .album(songRequest.getAlbum())
+                .length(songRequest.getLength())
+                .resourceId(songRequest.getResourceId())
+                .year(songRequest.getYear())
+                .build();
     }
 }

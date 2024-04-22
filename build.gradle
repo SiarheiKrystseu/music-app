@@ -36,6 +36,9 @@ subprojects {
         developmentOnly 'org.springframework.boot:spring-boot-devtools'
         runtimeOnly 'org.postgresql:postgresql'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.testcontainers:testcontainers-bom:1.19.7'
+        testImplementation 'org.testcontainers:postgresql'
+        testImplementation 'org.testcontainers:junit-jupiter'
         testImplementation 'com.h2database:h2'
     }
 

@@ -1,6 +1,7 @@
 package com.krystseu.microservices.songservice.controller;
 
-import com.krystseu.microservices.songservice.dto.SongDTO;
+import com.krystseu.microservices.songservice.dto.SongRequest;
+import com.krystseu.microservices.songservice.dto.SongResponse;
 import com.krystseu.microservices.songservice.exception.SongNotFoundException;
 import com.krystseu.microservices.songservice.service.SongService;
 import jakarta.validation.Valid;
@@ -25,11 +26,11 @@ public class SongController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getSongById(@PathVariable("id") Integer id) {
+    public ResponseEntity<?> getSongById(@PathVariable("id") Long id) {
         try {
-            Optional<SongDTO> songDTO = songService.getSongById(id);
-            if (songDTO.isPresent()) {
-                return ResponseEntity.ok(songDTO);
+            Optional<SongResponse> songResponse = songService.getSongById(id);
+            if (songResponse.isPresent()) {
+                return ResponseEntity.ok(songResponse);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("The song metadata with the specified id does not exist");
             }
@@ -39,14 +40,14 @@ public class SongController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SongDTO>> getAllSongs() {
-        List<SongDTO> songs = songService.getAllSongs();
+    public ResponseEntity<List<SongResponse>> getAllSongs() {
+        List<SongResponse> songs = songService.getAllSongs();
         return new ResponseEntity<>(songs, HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<?> createSong(@Valid @RequestBody(required = false) SongDTO songDTO, BindingResult bindingResult) {
-        if (songDTO == null) {
+    public ResponseEntity<?> createSong(@Valid @RequestBody(required = false) SongRequest songRequest, BindingResult bindingResult) {
+        if (songRequest == null) {
             return ResponseEntity.badRequest().body("Request body cannot be empty");
         }
 
@@ -55,23 +56,24 @@ public class SongController {
         }
 
         try {
-            SongDTO createdSongDTO = songService.createSong(songDTO);
-            return ResponseEntity.ok(Collections.singletonMap("id", createdSongDTO.getId()));
+            SongResponse createdSongResponse = songService.createSong(songRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Collections.singletonMap("id", createdSongResponse.getId()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An internal server error has occurred");
         }
     }
 
+
     @PutMapping("/{id}")
-    public ResponseEntity<SongDTO> updateSong(@PathVariable(name = "id") Long id, @RequestBody SongDTO updatedSongDTO) {
-        SongDTO updatedSongResponseDTO = songService.updateSong(id, updatedSongDTO);
-        return new ResponseEntity<>(updatedSongResponseDTO, HttpStatus.OK);
+    public ResponseEntity<SongResponse> updateSong(@PathVariable(name = "id") Long id, @RequestBody SongRequest updatedSongRequest) {
+        SongResponse updatedSongResponse = songService.updateSong(id, updatedSongRequest);
+        return new ResponseEntity<>(updatedSongResponse, HttpStatus.OK);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteSongs(@RequestParam("id") List<Integer> ids) {
+    public ResponseEntity<?> deleteSongs(@RequestParam("id") List<Long> ids) {
         try {
-            List<Integer> deletedIds = songService.deleteSongs(ids);
+            List<Long> deletedIds = songService.deleteSongs(ids);
             return ResponseEntity.ok().body(Collections.singletonMap("ids", deletedIds));
         } catch (SongNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
