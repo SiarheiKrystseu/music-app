@@ -1,17 +1,17 @@
 package com.krystseu.microservices.resourceservice.controller;
 
 import com.krystseu.microservices.resourceservice.dto.ResourceResponse;
-import com.krystseu.microservices.resourceservice.exception.FileUploadingException;
+import com.krystseu.microservices.resourceservice.exception.AudioUploadingException;
 import com.krystseu.microservices.resourceservice.exception.InvalidFileException;
 import com.krystseu.microservices.resourceservice.exception.ResourceNotFoundException;
 import com.krystseu.microservices.resourceservice.service.ResourceService;
+import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -40,39 +40,39 @@ public class ResourceController {
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteResources(@RequestParam("id") List<Integer> ids) {
-        if (ids.toString().length() >= 200) {
+    public ResponseEntity<?> deleteResources(@RequestParam("ids") String idsCSV) {
+        if (idsCSV.length() >= 200) {
             throw new InvalidParameterException("CSV length must be less than 200 characters");
         }
         try {
-            List<Integer> deletedIds = resourceService.deleteResources(ids);
+            List<Integer> deletedIds = resourceService.deleteResources(idsCSV);
             return ResponseEntity.ok().body(Collections.singletonMap("ids", deletedIds));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) throws TikaException, IOException, SAXException {
-        validateFile(file);
-        Optional<ResourceResponse> resourceResponseOptional = resourceService.uploadFile(file);
+    @PostMapping(path = "/upload", consumes = "audio/mpeg")
+    public ResponseEntity<?> uploadAudioFile(@RequestBody byte[] audioData) throws TikaException, IOException, SAXException {
+        validateAudioData(audioData);
+        Optional<ResourceResponse> resourceResponseOptional = resourceService.uploadAudio(audioData);
         return resourceResponseOptional
                 .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(Collections.singletonMap("id", response.getId())))
-                .orElseThrow(() -> new FileUploadingException("Failed to upload file"));
+                .orElseThrow(() -> new AudioUploadingException("Failed to upload audio file"));
     }
 
-    private void validateFile(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new InvalidFileException("Invalid MP3: Uploaded file cannot be empty");
+    private void validateAudioData(byte[] audioData) {
+        if (audioData == null || audioData.length == 0) {
+            throw new InvalidFileException("Invalid audio: Uploaded audio data cannot be empty");
         }
+        Tika tika = new Tika();
 
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.endsWith(".mp3")) {
-            throw new InvalidFileException("Invalid MP3: The file type must be MP3");
-        }
+        // Detect the content type of the audio data
+        String contentType = tika.detect(audioData);
 
-        if (!file.getContentType().equals("audio/mpeg")) {
-            throw new InvalidFileException("Invalid MP3: The file content must be in MP3 format");
+        // Check if the detected content type indicates an MP3 audio file
+        if (!contentType.equals("audio/mpeg")) {
+            throw new InvalidFileException("Invalid MP3: The audio data does not appear to be in MP3 format");
         }
     }
 }

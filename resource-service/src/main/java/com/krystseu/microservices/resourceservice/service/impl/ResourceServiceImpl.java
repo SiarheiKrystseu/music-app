@@ -2,7 +2,7 @@ package com.krystseu.microservices.resourceservice.service.impl;
 
 import com.krystseu.microservices.resourceservice.dto.ResourceResponse;
 import com.krystseu.microservices.resourceservice.exception.FileParsingException;
-import com.krystseu.microservices.resourceservice.exception.FileUploadingException;
+import com.krystseu.microservices.resourceservice.exception.AudioUploadingException;
 import com.krystseu.microservices.resourceservice.exception.InvalidFileException;
 import com.krystseu.microservices.resourceservice.exception.SongServiceException;
 import com.krystseu.microservices.resourceservice.model.Resource;
@@ -22,7 +22,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -30,11 +29,13 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
 import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,7 +62,17 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public List<Integer> deleteResources(List<Integer> ids) {
+    public List<Integer> deleteResources(String idsCSV) {
+        List<Integer> ids;
+        try {
+            // Split the CSV string into individual IDs
+            ids = Arrays.stream(idsCSV.split(","))
+                    .map(Integer::parseInt)
+                    .toList();
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid CSV format: all values must be integers");
+        }
+
         checkSongServiceAvailability();
         List<Integer> deletedIds = new ArrayList<>();
         for (Integer id : ids) {
@@ -76,6 +87,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
         return deletedIds;
     }
+
 
     @Override
     public Optional<SongResponse> getSongByResourceId(Integer id) {
@@ -94,11 +106,11 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
     @Override
-    public Optional<ResourceResponse> uploadFile(MultipartFile file) {
+    public Optional<ResourceResponse> uploadAudio(byte[] audioData) {
         try {
-            Metadata metadata = extractMetadata(file);
+            Metadata metadata = extractMetadata(audioData);
             checkSongServiceAvailability();
-            Resource savedResource = saveResource(file);
+            Resource savedResource = saveResource(audioData);
             SongRequest songRequest = createSongRequest(metadata, savedResource);
 
             log.info("Retrieved file metadata {}", songRequest);
@@ -112,27 +124,25 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private Metadata extractMetadata(MultipartFile file) {
-        try {
-            InputStream input = file.getInputStream();
+    private Metadata extractMetadata(byte[] audioData) {
+        try (InputStream input = new ByteArrayInputStream(audioData)) {
             ContentHandler handler = new BodyContentHandler();
             Metadata metadata = new Metadata();
             new Mp3Parser().parse(input, handler, metadata, new ParseContext());
             return metadata;
         } catch (IOException | TikaException | SAXException e) {
-            throw new FileParsingException("Error while parsing the file", e);
+            throw new FileParsingException("Error while parsing the audio data", e);
         }
     }
 
-    private Resource saveResource(MultipartFile file) {
+    private Resource saveResource(byte[] audioData) {
         try {
-            byte[] byteData = file.getBytes();
-            Blob data = new javax.sql.rowset.serial.SerialBlob(byteData);
+            Blob data = new javax.sql.rowset.serial.SerialBlob(audioData);
             Resource resource = new Resource();
             resource.setData(data);
             return resourceRepository.save(resource);
-        } catch (IOException | SQLException e) {
-            throw new FileUploadingException("Error while uploading the file", (IOException) e);
+        } catch (SQLException e) {
+            throw new AudioUploadingException("Error while uploading the file", e);
         }
     }
 

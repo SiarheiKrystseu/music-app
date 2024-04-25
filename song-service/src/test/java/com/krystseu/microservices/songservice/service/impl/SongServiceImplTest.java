@@ -49,16 +49,15 @@ class SongServiceImplTest {
     @Test
     void testGetSongById() {
         // Mock data
-        Long id = 1L;
-        Optional<Song> songOptional = Optional.of(new Song(id, "Song 1", "Artist 1", "Album 1", "4:30", 234L, "2024"));
-        when(songRepository.findById(id)).thenReturn(songOptional);
+        Optional<Song> songOptional = Optional.of(new Song(1L, "Song 1", "Artist 1", "Album 1", "4:30", 234L, "2024"));
+        when(songRepository.findById(1L)).thenReturn(songOptional);
 
         // Test
-        Optional<SongResponse> songResponseOptional = songService.getSongById(id);
+        Optional<SongResponse> songResponseOptional = songService.getSongById(1);
 
         // Assertions
         assertTrue(songResponseOptional.isPresent());
-        assertEquals(id, songResponseOptional.get().getId());
+        assertEquals(1, songResponseOptional.get().getId());
     }
 
     @Test
@@ -84,14 +83,13 @@ class SongServiceImplTest {
     @Test
     void testUpdateSong() {
         // Mock data
-        Long id = 1L;
         SongRequest updatedSongRequest = new SongRequest("Updated Song", "Updated Artist", "Updated Album", "5:00", 456L, "2023");
-        Song existingSong = new Song(id, "Existing Song", "Existing Artist", "Existing Album", "4:00", 123L, "2022");
-        when(songRepository.findById(id)).thenReturn(Optional.of(existingSong));
+        Song existingSong = new Song(1L, "Existing Song", "Existing Artist", "Existing Album", "4:00", 123L, "2022");
+        when(songRepository.findById(1L)).thenReturn(Optional.of(existingSong));
         when(songRepository.save(any(Song.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Test
-        SongResponse updatedSong = songService.updateSong(id, updatedSongRequest);
+        SongResponse updatedSong = songService.updateSong(1, updatedSongRequest);
 
         // Assertions
         assertNotNull(updatedSong);
@@ -106,7 +104,7 @@ class SongServiceImplTest {
     @Test
     void testDeleteSongs() {
         // Mock data
-        List<Long> ids = List.of(1L, 2L, 3L);
+        String idsCSV = "1,2,3";
         List<Long> idList = List.of(1L, 2L, 3L);
         doNothing().when(songRepository).deleteAllById(idList);
         when(songRepository.existsById(1L)).thenReturn(true);
@@ -114,18 +112,17 @@ class SongServiceImplTest {
         when(songRepository.existsById(3L)).thenReturn(true);
 
         // Test
-        List<Long> deletedIds = songService.deleteSongs(ids);
+        List<Integer> deletedIds = songService.deleteSongs(idsCSV);
 
         // Assertions
         assertNotNull(deletedIds);
-        assertEquals(ids.size(), deletedIds.size());
-        assertTrue(deletedIds.containsAll(ids));
-    }
+        assertEquals(3, deletedIds.size());
+        assertTrue(deletedIds.containsAll(List.of(1,2,3)));    }
 
     @Test
     void testDeleteSongs_SongNotFoundException() {
         // Mock data
-        List<Long> ids = List.of(1L, 2L, 3L);
+        String idsCSV = "1,2,3";
         List<Long> idList = List.of(1L, 2L, 3L);
 
         // Mock behavior
@@ -135,7 +132,7 @@ class SongServiceImplTest {
 
         // Test
         Exception exception = assertThrows(SongNotFoundException.class, () -> {
-            songService.deleteSongs(ids);
+            songService.deleteSongs(idsCSV);
         });
 
         // Assertions

@@ -14,7 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -85,7 +84,7 @@ class ResourceServiceImplTest {
     @Test
     void testDeleteResources() {
         // Mock data
-        List<Integer> ids = Arrays.asList(1, 2, 3);
+        String idsCSV = "1,2,3";
         when(resourceRepository.existsById(1L)).thenReturn(true);
         when(resourceRepository.existsById(2L)).thenReturn(true);
         when(resourceRepository.existsById(3L)).thenReturn(true);
@@ -94,11 +93,11 @@ class ResourceServiceImplTest {
         doNothing().when(resourceRepository).deleteById(3L);
 
         // Test
-        List<Integer> deletedIds = resourceService.deleteResources(ids);
+        List<Integer> deletedIds = resourceService.deleteResources(idsCSV);
 
         // Assertions
         assertNotNull(deletedIds);
-        assertEquals(ids.size(), deletedIds.size());
-        assertTrue(deletedIds.containsAll(ids));
+        assertEquals(3, deletedIds.size());
+        assertTrue(deletedIds.containsAll(List.of(1,2,3)));
     }
 }
