@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,8 +35,8 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public Optional<SongResponse> getSongById(Long id) {
-        Optional<Song> optionalSong = songRepository.findById(id);
+    public Optional<SongResponse> getSongById(Integer id) {
+        Optional<Song> optionalSong = songRepository.findById(Long.valueOf(id));
         return optionalSong.map(this::convertToSongResponse);
     }
 
@@ -47,8 +48,8 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public SongResponse updateSong(Long id, SongRequest updatedSongRequest) {
-        Optional<Song> optionalExistingSong = songRepository.findById(id);
+    public SongResponse updateSong(Integer id, SongRequest updatedSongRequest) {
+        Optional<Song> optionalExistingSong = songRepository.findById(Long.valueOf(id));
         if (optionalExistingSong.isPresent()) {
             Song existingSong = optionalExistingSong.get();
 
@@ -71,15 +72,29 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public List<Long> deleteSongs(List<Long> ids) {
-        List<Long> idList = ids.stream().toList();
-        for(Long id : idList) {
+    public List<Integer> deleteSongs(String idsCSV) {
+        List<Integer> integerIds;
+        try {
+            // Split the CSV string into individual IDs
+            integerIds = Arrays.stream(idsCSV.split(","))
+                    .map(Integer::parseInt)
+                    .toList();
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid CSV format: all values must be integers");
+        }
+
+
+        List<Long> longIds = integerIds.stream()
+                .map(Integer::longValue)
+                .toList();
+
+        for(Long id : longIds) {
             if(!songRepository.existsById(id)) {
                 throw new SongNotFoundException("Song with id " + id + " not found");
             }
         }
-        songRepository.deleteAllById(idList);
-        return ids;
+        songRepository.deleteAllById(longIds);
+        return integerIds;
     }
 
     private SongResponse convertToSongResponse(Song song) {

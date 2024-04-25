@@ -26,7 +26,7 @@ public class SongController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getSongById(@PathVariable("id") Long id) {
+    public ResponseEntity<?> getSongById(@PathVariable("id") Integer id) {
         try {
             Optional<SongResponse> songResponse = songService.getSongById(id);
             if (songResponse.isPresent()) {
@@ -46,13 +46,9 @@ public class SongController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createSong(@Valid @RequestBody(required = false) SongRequest songRequest, BindingResult bindingResult) {
-        if (songRequest == null) {
-            return ResponseEntity.badRequest().body("Request body cannot be empty");
-        }
-
+    public ResponseEntity<?> createSong(@Valid @RequestBody SongRequest songRequest, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-            return ResponseEntity.badRequest().body(bindingResult.getAllErrors());
+            return ResponseEntity.badRequest().body("Song metadata missing validation");
         }
 
         try {
@@ -65,15 +61,15 @@ public class SongController {
 
 
     @PutMapping("/{id}")
-    public ResponseEntity<SongResponse> updateSong(@PathVariable(name = "id") Long id, @RequestBody SongRequest updatedSongRequest) {
+    public ResponseEntity<SongResponse> updateSong(@PathVariable(name = "id") Integer id, @RequestBody SongRequest updatedSongRequest) {
         SongResponse updatedSongResponse = songService.updateSong(id, updatedSongRequest);
         return new ResponseEntity<>(updatedSongResponse, HttpStatus.OK);
     }
 
     @DeleteMapping
-    public ResponseEntity<?> deleteSongs(@RequestParam("id") List<Long> ids) {
+    public ResponseEntity<?> deleteSongs(@RequestParam("ids") String idsCSV) {
         try {
-            List<Long> deletedIds = songService.deleteSongs(ids);
+            List<Integer> deletedIds = songService.deleteSongs(idsCSV);
             return ResponseEntity.ok().body(Collections.singletonMap("ids", deletedIds));
         } catch (SongNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
