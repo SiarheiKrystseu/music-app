@@ -1,3 +1,4 @@
-dependencies {
-	//
+tasks.bootJar {
+    enabled = true
+    mainClass = 'com.krystseu.microservices.songservice.SongServiceApplication'
 }
