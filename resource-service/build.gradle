@@ -1,4 +1,9 @@
-apply plugin: 'java'
+
+tasks.bootJar {
+	enabled = true
+	mainClass = 'com.krystseu.microservices.resourceservice.ResourceServiceApplication'
+}
+
 
 dependencies {
 	implementation 'org.apache.tika:tika-core:2.9.2'

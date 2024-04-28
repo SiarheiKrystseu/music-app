@@ -1,0 +1,52 @@
+version: "3.9"
+services:
+  resource-service:
+    build:
+      context: ./resource-service
+      dockerfile: Dockerfile
+    ports:
+      - "${RESOURCE_SERVICE_PORT}:${RESOURCE_SERVICE_PORT}"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://resources-db:5432/${POSTGRES_DB_RESOURCES}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_RESOURCES}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
+      LOCAL_RESOURCES_PATH: "/resources" # AUDIO files for init-resources.sql
+    volumes:
+      - ./resources:/resources
+    depends_on:
+      - resources-db
+
+  song-service:
+    build: ./song-service
+    ports:
+      - "${SONG_SERVICE_PORT}:${SONG_SERVICE_PORT}"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://songs-db:5432/${POSTGRES_DB_SONGS}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_SONGS}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_SONGS}"
+    depends_on:
+      - songs-db
+
+  resources-db:
+    image: postgres:14-alpine
+    ports:
+      - "${POSTGRES_PORT_RESOURCES}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER_RESOURCES}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
+      POSTGRES_DB: "${POSTGRES_DB_RESOURCES}"
+    volumes:
+      - ./db/init-resources.sql:/docker-entrypoint-initdb.d/init-resources.sql
+      - ./resources:/resources
+
+  songs-db:
+    image: postgres:14-alpine
+    ports:
+      - "${POSTGRES_PORT_SONGS}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER_SONGS}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD_SONGS}"
+      POSTGRES_DB: "${POSTGRES_DB_SONGS}"
+    volumes:
+      - ./db/init-songs.sql:/docker-entrypoint-initdb.d/init-songs.sql
+
