@@ -1,3 +1,5 @@
+# to start 2 song services, use the command:
+# docker-compose up --scale song-service=2
 version: "3.9"
 services:
   resource-service:
