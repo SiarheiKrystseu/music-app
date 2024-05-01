@@ -48,6 +48,22 @@ services:
     networks:
       - app-network
 
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    environment:
+      SPRING_APPLICATION_NAME: "${API_GATEWAY_NAME}"
+      SERVER_PORT: "${API_GATEWAY_PORT}"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
+    command: ["java", "-jar", "api-gateway.jar"]
+    depends_on:
+      - discovery-server
+    networks:
+      - app-network
+
   resources-db:
     image: postgres:14-alpine
     ports:

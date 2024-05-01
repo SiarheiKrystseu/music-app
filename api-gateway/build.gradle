@@ -1,0 +1,10 @@
+tasks.bootJar {
+	enabled = true
+	mainClass = 'com.krystseu.microservices.apigateway.ApiGatewayApplication'
+}
+
+dependencies {
+	implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
