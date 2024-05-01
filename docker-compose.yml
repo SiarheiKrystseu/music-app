@@ -4,28 +4,49 @@ services:
     build:
       context: ./resource-service
       dockerfile: Dockerfile
-    ports:
-      - "${RESOURCE_SERVICE_PORT}:${RESOURCE_SERVICE_PORT}"
     environment:
+      SPRING_APPLICATION_NAME: "${RESOURCE_SERVICE_NAME}"
+      SERVER_PORT: "${RESOURCE_SERVICE_PORT}"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://resources-db:5432/${POSTGRES_DB_RESOURCES}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_RESOURCES}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
-      LOCAL_RESOURCES_PATH: "/resources" # AUDIO files for init-resources.sql
-    volumes:
-      - ./resources:/resources
+      LOCAL_RESOURCES_PATH: "/resources"
     depends_on:
+      - discovery-server
       - resources-db
+    networks:
+      - app-network
 
   song-service:
-    build: ./song-service
-    ports:
-      - "${SONG_SERVICE_PORT}:${SONG_SERVICE_PORT}"
+    build:
+      context: ./song-service
+      dockerfile: Dockerfile
     environment:
+      SPRING_APPLICATION_NAME: "${SONG_SERVICE_NAME}"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://songs-db:5432/${POSTGRES_DB_SONGS}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_SONGS}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_SONGS}"
+    command: ["java", "-jar", "song-service.jar", "--server.port=0"]
     depends_on:
+      - discovery-server
       - songs-db
+    networks:
+      - app-network
+
+  discovery-server:
+    build: ./discovery-server
+    ports:
+      - "${EUREKA_SERVER_PORT}:${EUREKA_SERVER_PORT}"
+    environment:
+      SPRING_APPLICATION_NAME: "${DISCOVERY_SERVICE_NAME}"
+      SERVER_PORT: "${EUREKA_SERVER_PORT}"
+    depends_on:
+      - resources-db
+      - songs-db
+    networks:
+      - app-network
 
   resources-db:
     image: postgres:14-alpine
@@ -38,6 +59,8 @@ services:
     volumes:
       - ./db/init-resources.sql:/docker-entrypoint-initdb.d/init-resources.sql
       - ./resources:/resources
+    networks:
+      - app-network
 
   songs-db:
     image: postgres:14-alpine
@@ -49,4 +72,10 @@ services:
       POSTGRES_DB: "${POSTGRES_DB_SONGS}"
     volumes:
       - ./db/init-songs.sql:/docker-entrypoint-initdb.d/init-songs.sql
+      - ./resources:/resources
+    networks:
+      - app-network
 
+networks:
+  app-network:
+    driver: bridge
