@@ -29,6 +29,9 @@ class ResourceServiceImplTest {
     private ResourceServiceImpl resourceService;
 
     @Mock
+    private WebClient.Builder webClientBuilder;
+
+    @Mock
     private WebClient webClient;
 
     @Mock
@@ -48,6 +51,7 @@ class ResourceServiceImplTest {
         MockitoAnnotations.initMocks(this);
 
         WebClient.RequestBodyUriSpec requestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        when(webClientBuilder.build()).thenReturn(webClient);
 
         // Mock WebClient behavior for GET
         when(webClient.get()).thenReturn(requestHeadersUriSpec);

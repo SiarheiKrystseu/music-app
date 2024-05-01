@@ -18,6 +18,7 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.mp3.Mp3Parser;
 import org.apache.tika.sax.BodyContentHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -45,14 +46,13 @@ import java.util.Optional;
 public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
-    private final WebClient webClient;
-    //todo use Service Discovery instead of hardcoded url
-    private static final String SONG_SERVICE_ENDPOINT = "http://localhost:8081/api/songs";
+    private final WebClient.Builder webClientBuilder;
+    private static final String SONG_SERVICE_ENDPOINT = "http://song-service/api/songs";
 
     @Autowired
-    public ResourceServiceImpl(ResourceRepository resourceRepository, WebClient webClient) {
+    public ResourceServiceImpl(ResourceRepository resourceRepository, WebClient.Builder webClientBuilder) {
         this.resourceRepository = resourceRepository;
-        this.webClient = webClient;
+        this.webClientBuilder = webClientBuilder;
     }
 
     @Override
@@ -93,7 +93,7 @@ public class ResourceServiceImpl implements ResourceService {
     public Optional<SongResponse> getSongByResourceId(Integer id) {
         try {
             return Optional.ofNullable(
-                    webClient.get()
+                    webClientBuilder.build().get()
                             .uri(SONG_SERVICE_ENDPOINT + "/" + id)
                             .retrieve()
                             .bodyToMono(SongResponse.class)
@@ -164,7 +164,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     private SongResponse createSong(SongRequest songRequest) {
         try {
-            return webClient.post()
+            return webClientBuilder.build().post()
                     .uri(SONG_SERVICE_ENDPOINT)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Mono.just(songRequest), SongRequest.class)
@@ -205,7 +205,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     private void checkSongServiceAvailability() {
         try {
-            HttpStatusCode status = webClient.get()
+            HttpStatusCode status = webClientBuilder.build().get()
                     .uri(SONG_SERVICE_ENDPOINT)
                     .exchangeToMono(response -> Mono.just(response.statusCode()))
                     .block();

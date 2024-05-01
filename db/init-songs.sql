@@ -1,5 +1,7 @@
+CREATE SEQUENCE song_sequence START WITH 1;
+
 CREATE TABLE IF NOT EXISTS songs (
-    id SERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY DEFAULT nextval('song_sequence'),
     name VARCHAR(255),
     artist VARCHAR(255),
     album VARCHAR(255),
