@@ -1,5 +1,3 @@
-# to start 2 song services, use the command:
-# docker-compose up --scale song-service=2
 version: "3.9"
 services:
   resource-service:
@@ -91,6 +89,17 @@ services:
     volumes:
       - ./db/init-songs.sql:/docker-entrypoint-initdb.d/init-songs.sql
       - ./resources:/resources
+    networks:
+      - app-network
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4510:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
     networks:
       - app-network
 

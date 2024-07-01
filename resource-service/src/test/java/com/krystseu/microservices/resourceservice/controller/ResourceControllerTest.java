@@ -1,5 +1,6 @@
 package com.krystseu.microservices.resourceservice.controller;
 
+import com.amazonaws.services.s3.AmazonS3;
 import com.krystseu.microservices.resourceservice.dto.ResourceResponse;
 import com.krystseu.microservices.resourceservice.repository.ResourceRepository;
 import com.krystseu.microservices.resourceservice.service.ResourceService;
@@ -37,6 +38,9 @@ class ResourceControllerTest {
 
     @MockBean
     private ResourceRepository resourceRepository;
+
+    @MockBean
+    private AmazonS3 amazonS3;
 
     @Test
     void testGetResource() throws Exception {

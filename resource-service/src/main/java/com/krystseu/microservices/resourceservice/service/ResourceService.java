@@ -12,6 +12,5 @@ import java.util.Optional;
 public interface ResourceService {
     Optional<ResourceResponse> uploadAudio(byte[] audioData) throws IOException, TikaException, SAXException;
     Optional<ResourceResponse> getResourceById(Integer id);
-    Optional<SongResponse> getSongByResourceId(Integer id);
     List<Integer> deleteResources(String idsCSV);
 }
