@@ -48,6 +48,19 @@ services:
     networks:
       - app-network
 
+  resource-processor:
+    build:
+      context: ./resource-processor
+      dockerfile: Dockerfile
+    environment:
+      SPRING_APPLICATION_NAME: "${RESOURCE_PROCESSOR_NAME}"
+      SERVER_PORT: "${RESOURCE_PROCESSOR_PORT}"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
+    depends_on:
+      - discovery-server
+    networks:
+      - app-network
+
   api-gateway:
     build:
       context: ./api-gateway

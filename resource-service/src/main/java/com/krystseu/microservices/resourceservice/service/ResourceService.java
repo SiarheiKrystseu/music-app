@@ -1,7 +1,6 @@
 package com.krystseu.microservices.resourceservice.service;
 
 import com.krystseu.microservices.resourceservice.dto.ResourceResponse;
-import com.krystseu.microservices.songservice.dto.SongResponse;
 import org.apache.tika.exception.TikaException;
 import org.xml.sax.SAXException;
 
