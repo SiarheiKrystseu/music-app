@@ -1,19 +1,15 @@
-CREATE SEQUENCE resource_sequence START 1;
+BEGIN;
+CREATE SEQUENCE resource_sequence START WITH 1;
+COMMIT;
 
-CREATE TABLE resources (
-    id BIGINT NOT NULL DEFAULT nextval('resource_sequence'),
-    data oid,
+BEGIN;
+CREATE TABLE IF NOT EXISTS resources (
+    id BIGINT PRIMARY KEY DEFAULT nextval('resource_sequence'),
+    location VARCHAR(255) NOT NULL,
     PRIMARY KEY (id)
 );
-
-INSERT INTO resources(data) VALUES (
-    lo_import('/resources/Free_Test_Data_500KB_MP3.mp3')
-);
-
-INSERT INTO resources(data) VALUES (
-    lo_import('/resources/Free_Test_Data_500KB_MP3.mp3')
-);
-
-INSERT INTO resources(data) VALUES (
-    lo_import('/resources/Free_Test_Data_500KB_MP3.mp3')
-);
+COMMIT;
+INSERT INTO resources (location) VALUES
+('http://localhost:4510/bucket-name/file1.mp3'),
+('http://localhost:4510/bucket-name/file2.mp3'),
+('http://localhost:4510/bucket-name/file3.mp3');
