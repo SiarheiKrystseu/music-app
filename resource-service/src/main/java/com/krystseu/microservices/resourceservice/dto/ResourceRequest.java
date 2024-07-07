@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ResourceRequest {
-    //todo update fields
     private byte[] data;
 }
