@@ -70,7 +70,8 @@ public class ResourceProcessorImpl implements ResourceProcessor {
         }
     }
 
-    private Metadata extractMetadata(byte[] audioData) {
+    @Override
+    public Metadata extractMetadata(byte[] audioData) {
         try (InputStream input = new ByteArrayInputStream(audioData)) {
             ContentHandler handler = new BodyContentHandler();
             Metadata metadata = new Metadata();
