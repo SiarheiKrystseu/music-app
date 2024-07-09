@@ -5,5 +5,6 @@ import org.apache.tika.exception.TikaException;
 import java.io.IOException;
 
 public interface ResourceProcessor {
-    Metadata processResource(byte[] resourceData) throws IOException, TikaException;
+    void processResourceMessage(String resourceId) throws IOException, TikaException;
+    Metadata extractMetadata(byte[] audioData);
 }

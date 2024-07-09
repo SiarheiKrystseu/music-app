@@ -4,13 +4,20 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.krystseu.microservices.resourceservice.dto.ResourceResponse;
 import com.krystseu.microservices.resourceservice.exception.AudioUploadingException;
 import com.krystseu.microservices.resourceservice.exception.InvalidFileException;
+import com.krystseu.microservices.resourceservice.exception.ResourceNotFoundException;
 import com.krystseu.microservices.resourceservice.model.Resource;
 import com.krystseu.microservices.resourceservice.repository.ResourceRepository;
+import com.krystseu.microservices.resourceservice.service.ResourceMessageSender;
+import com.krystseu.microservices.resourceservice.service.ResourceSavedEvent;
 import com.krystseu.microservices.resourceservice.service.ResourceService;
-import jakarta.transaction.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,6 +29,11 @@ import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.context.event.EventListener;
+import org.springframework.web.client.HttpClientErrorException;
 
 @Service
 @Transactional
@@ -30,14 +42,21 @@ public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final AmazonS3 amazonS3;
+    private final ResourceMessageSender resourceMessageSender;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${cloud.aws.s3.bucket-name}")
     String bucketName;
 
     @Autowired
-    public ResourceServiceImpl(ResourceRepository resourceRepository, AmazonS3 amazonS3) {
+    public ResourceServiceImpl(ResourceRepository resourceRepository,
+                               AmazonS3 amazonS3,
+                               ResourceMessageSender resourceMessageSender,
+                               ApplicationEventPublisher eventPublisher) {
         this.resourceRepository = resourceRepository;
         this.amazonS3 = amazonS3;
+        this.resourceMessageSender = resourceMessageSender;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -74,6 +93,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Optional<ResourceResponse> uploadAudio(byte[] audioData) {
         try {
             String fileName = uploadToCloudStorage(audioData);
@@ -82,6 +102,8 @@ public class ResourceServiceImpl implements ResourceService {
             log.info("Uploaded audio to cloud storage at {}", savedResource.getLocation());
             log.info("Saved resource with ID {}", savedResource.getId());
 
+            eventPublisher.publishEvent(new ResourceSavedEvent(this, savedResource.getId().toString()));
+
             return Optional.ofNullable(convertToResourceResponse(savedResource));
         } catch (Exception e) {
             log.error("Error while uploading the audio", e);
@@ -89,7 +111,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private String uploadToCloudStorage(byte[] audioData) {
+    public String uploadToCloudStorage(byte[] audioData) {
         String fileName = UUID.randomUUID().toString() + ".mp3";
         try (InputStream input = new ByteArrayInputStream(audioData)) {
             amazonS3.putObject(new PutObjectRequest(bucketName, fileName, input, new ObjectMetadata())
@@ -100,7 +122,7 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private Resource saveResource(String fileName) {
+    public Resource saveResource(String fileName) {
         Resource resource = new Resource();
         log.info("Saving resource with filename {}", fileName);
         String locationUrl = amazonS3.getUrl(bucketName, fileName).toString();
@@ -131,9 +153,17 @@ public class ResourceServiceImpl implements ResourceService {
         return location.substring(location.lastIndexOf("/") + 1);
     }
 
-    public static String formatDuration(double durationInSeconds) {
-        int hours = (int) (durationInSeconds / 3600);
-        int minutes = (int) ((durationInSeconds % 3600) / 60);
-        return String.format("%02d:%02d", hours, minutes);
+
+    @Recover
+    public Resource recover(HttpClientErrorException e, Integer id) {
+        log.error("Failed to retrieve resource with ID: " + id, e);
+        throw new ResourceNotFoundException("Failed to retrieve resource with ID: " + id);
+    }
+
+    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleResourceSavedEvent(ResourceSavedEvent event) {
+        resourceMessageSender.sendResourceMessage(event.getResourceId());
+        log.info("Request to Resource Processor with resource {} has been sent", event.getResourceId());
     }
 }
