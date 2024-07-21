@@ -1,5 +1,6 @@
 version: "3.9"
 services:
+
   resource-service:
     build:
       context: ./resource-service
@@ -13,9 +14,19 @@ services:
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
       LOCAL_RESOURCES_PATH: "/resources"
       SPRING_RABBITMQ_HOST: "rabbitmq"
+      CLOUD_AWS_CREDENTIALS_ACCESS_KEY: "${CLOUD_AWS_CREDENTIALS_ACCESS_KEY}"
+      CLOUD_AWS_CREDENTIALS_SECRET_KEY: "${CLOUD_AWS_CREDENTIALS_SECRET_KEY}"
+      CLOUD_AWS_REGION_STATIC: "${CLOUD_AWS_REGION_STATIC}"
+      CLOUD_AWS_S3_BUCKET_NAME: "${CLOUD_AWS_S3_BUCKET_NAME}"
+      CLOUD_AWS_S3_ENDPOINT: "${CLOUD_AWS_S3_ENDPOINT}"
+      RESOURCE_RABBITMQ_EXCHANGE: "${RESOURCE_RABBITMQ_EXCHANGE}"
+      RESOURCE_RABBITMQ_QUEUE: "${RESOURCE_RABBITMQ_QUEUE}"
+    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-service.jar"]
     depends_on:
+      - configuration-server
       - discovery-server
       - resources-db
+      - localstack
     networks:
       - app-network
 
@@ -24,13 +35,15 @@ services:
       context: ./song-service
       dockerfile: Dockerfile
     environment:
+      SERVER_PORT: "${SONG_SERVICE_PORT}"
       SPRING_APPLICATION_NAME: "${SONG_SERVICE_NAME}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://songs-db:5432/${POSTGRES_DB_SONGS}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_SONGS}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_SONGS}"
-    command: ["java", "-jar", "song-service.jar", "--server.port=0"]
+    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "song-service.jar"]
     depends_on:
+      - configuration-server
       - discovery-server
       - songs-db
     networks:
@@ -43,7 +56,9 @@ services:
     environment:
       SPRING_APPLICATION_NAME: "${DISCOVERY_SERVICE_NAME}"
       SERVER_PORT: "${EUREKA_SERVER_PORT}"
+    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "discovery-server.jar"]
     depends_on:
+      - configuration-server
       - resources-db
       - songs-db
     networks:
@@ -58,7 +73,9 @@ services:
       SERVER_PORT: "${RESOURCE_PROCESSOR_PORT}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
       SPRING_RABBITMQ_HOST: "${SPRING_RABBITMQ_HOST}"
+    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-processor.jar"]
     depends_on:
+      - configuration-server
       - discovery-server
       - resource-service
       - rabbitmq
@@ -66,18 +83,26 @@ services:
       - app-network
 
   api-gateway:
-    build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+    build: ./api-gateway
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     environment:
       SPRING_APPLICATION_NAME: "${API_GATEWAY_NAME}"
       SERVER_PORT: "${API_GATEWAY_PORT}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
-    command: ["java", "-jar", "api-gateway.jar"]
+    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "api-gateway.jar"]
     depends_on:
-      - discovery-server
+      - configuration-server
+    networks:
+      - app-network
+
+  configuration-server:
+    build: ./configuration-server
+    ports:
+      - "${CONFIG_SERVER_PORT}:${CONFIG_SERVER_PORT}"
+    environment:
+      SPRING_APPLICATION_NAME: "${CONFIG_SERVER_NAME}"
+      SERVER_PORT: "${CONFIG_SERVER_PORT}"
     networks:
       - app-network
 
