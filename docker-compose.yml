@@ -1,6 +1,5 @@
 version: "3.9"
 services:
-
   resource-service:
     build:
       context: ./resource-service
@@ -26,7 +25,25 @@ services:
       - configuration-server
       - discovery-server
       - resources-db
-      - localstack
+    networks:
+      - app-network
+
+  storage-service:
+    build:
+      context: ./storage-service
+      dockerfile: Dockerfile
+    environment:
+      SPRING_APPLICATION_NAME: "${STORAGE_SERVICE_NAME}"
+      SERVER_PORT: "${STORAGE_SERVICE_PORT}"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://storage-db:5432/${POSTGRES_DB_STORAGE}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_STORAGE}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_STORAGE}"
+    command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "storage-service.jar" ]
+    depends_on:
+      - configuration-server
+      - discovery-server
+      - storage-db
     networks:
       - app-network
 
@@ -83,7 +100,9 @@ services:
       - app-network
 
   api-gateway:
-    build: ./api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     environment:
@@ -131,6 +150,17 @@ services:
     volumes:
       - ./db/init-songs.sql:/docker-entrypoint-initdb.d/init-songs.sql
       - ./resources:/resources
+    networks:
+      - app-network
+
+  storage-db:
+    image: postgres:14-alpine
+    ports:
+      - "${POSTGRES_PORT_STORAGE}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER_STORAGE}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD_STORAGE}"
+      POSTGRES_DB: "${POSTGRES_DB_STORAGE}"
     networks:
       - app-network
 
