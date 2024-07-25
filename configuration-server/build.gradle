@@ -1,11 +1,10 @@
 tasks.bootJar {
 	enabled = true
-	mainClass = 'com.krystseu.microservices.discoveryserver.DiscoveryServerApplication'
+	mainClass = 'com.krystseu.microservices.configserver.ConfigServerApplication'
 }
 
 dependencies {
-	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+	implementation 'org.springframework.cloud:spring-cloud-config-server'
 	implementation 'org.springframework.cloud:spring-cloud-starter-config'
 	implementation 'org.springframework.retry:spring-retry:1.3.1'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
