@@ -1,9 +1,10 @@
-package com.krystseu.microservices.storageservice.model.controller;
+package com.krystseu.microservices.storageservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.krystseu.microservices.storageservice.controller.StorageController;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
-import com.krystseu.microservices.storageservice.model.service.StorageService;
+import com.krystseu.microservices.storageservice.service.StorageService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;

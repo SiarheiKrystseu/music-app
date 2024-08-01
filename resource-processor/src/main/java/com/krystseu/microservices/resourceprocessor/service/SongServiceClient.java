@@ -1,9 +1,11 @@
 package com.krystseu.microservices.resourceprocessor.service;
 
 import com.krystseu.microservices.songservice.dto.SongRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.metadata.Metadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,17 +16,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class SongServiceClient {
 
     private final WebClient.Builder webClientBuilder;
     private final String songServiceEndpoint;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Autowired
     public SongServiceClient(WebClient.Builder webClientBuilder,
-                             @Value("${song-service.endpoint}") String songServiceEndpoint) {
+                             @Value("${song-service.endpoint}") String songServiceEndpoint,
+                             ApplicationEventPublisher eventPublisher) {
         this.webClientBuilder = webClientBuilder;
         this.songServiceEndpoint = songServiceEndpoint;
+        this.eventPublisher = eventPublisher;
     }
+
     public void saveMetadata(Metadata metadata, Long resourceId) {
         // Convert Metadata to SongRequest
         SongRequest songRequest = new SongRequest();
@@ -35,7 +42,12 @@ public class SongServiceClient {
         String durationStr = metadata.get("xmpDM:duration");
         double duration = 0.0;
         if (durationStr != null) {
-            duration = Double.parseDouble(durationStr);
+            try {
+                duration = Double.parseDouble(durationStr);
+            } catch (NumberFormatException e) {
+                log.error("Invalid duration format: {}", durationStr);
+                duration = 0.0; // Default to 0 if parsing fails
+            }
         }
         songRequest.setLength(formatDuration(duration));
         songRequest.setResourceId(resourceId);
@@ -47,6 +59,13 @@ public class SongServiceClient {
                 .body(BodyInserters.fromValue(songRequest))
                 .retrieve()
                 .bodyToMono(Void.class)
+                .doOnSuccess(aVoid -> {
+                    // Publish an event after metadata is saved
+                    eventPublisher.publishEvent(new SongMetadataSavedEvent(resourceId));
+                })
+                .doOnError(error -> {
+                    log.error("Failed to save metadata for resource ID: {}", resourceId, error);
+                })
                 .block();
     }
 
@@ -57,3 +76,5 @@ public class SongServiceClient {
         return String.format("%d:%02d", minutes, seconds);
     }
 }
+
+

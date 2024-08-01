@@ -3,7 +3,6 @@ services:
   resource-service:
     build:
       context: ./resource-service
-      dockerfile: Dockerfile
     environment:
       SPRING_APPLICATION_NAME: "${RESOURCE_SERVICE_NAME}"
       SERVER_PORT: "${RESOURCE_SERVICE_PORT}"
@@ -12,19 +11,25 @@ services:
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_RESOURCES}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
       LOCAL_RESOURCES_PATH: "/resources"
-      SPRING_RABBITMQ_HOST: "rabbitmq"
+      SPRING_RABBITMQ_HOST: "rabbitmq"  # Ensure RabbitMQ host matches the service name
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: "test"
+      SPRING_RABBITMQ_PASSWORD: "test"
       CLOUD_AWS_CREDENTIALS_ACCESS_KEY: "${CLOUD_AWS_CREDENTIALS_ACCESS_KEY}"
       CLOUD_AWS_CREDENTIALS_SECRET_KEY: "${CLOUD_AWS_CREDENTIALS_SECRET_KEY}"
       CLOUD_AWS_REGION_STATIC: "${CLOUD_AWS_REGION_STATIC}"
-      CLOUD_AWS_S3_BUCKET_NAME: "${CLOUD_AWS_S3_BUCKET_NAME}"
+      CLOUD_AWS_S3_STAGING_BUCKET_NAME: "${CLOUD_AWS_S3_STAGING_BUCKET_NAME}"
+      CLOUD_AWS_S3_PERMANENT_BUCKET_NAME: "${CLOUD_AWS_S3_PERMANENT_BUCKET_NAME}"
       CLOUD_AWS_S3_ENDPOINT: "${CLOUD_AWS_S3_ENDPOINT}"
       RESOURCE_RABBITMQ_EXCHANGE: "${RESOURCE_RABBITMQ_EXCHANGE}"
       RESOURCE_RABBITMQ_QUEUE: "${RESOURCE_RABBITMQ_QUEUE}"
-    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-service.jar"]
+    command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-service.jar" ]
     depends_on:
       - configuration-server
       - discovery-server
       - resources-db
+      - storage-service
+      - rabbitmq
     networks:
       - app-network
 
@@ -84,13 +89,15 @@ services:
   resource-processor:
     build:
       context: ./resource-processor
-      dockerfile: Dockerfile
     environment:
       SPRING_APPLICATION_NAME: "${RESOURCE_PROCESSOR_NAME}"
       SERVER_PORT: "${RESOURCE_PROCESSOR_PORT}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
-      SPRING_RABBITMQ_HOST: "${SPRING_RABBITMQ_HOST}"
-    command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-processor.jar"]
+      SPRING_RABBITMQ_HOST: "rabbitmq"  # Ensure consistency
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: "test"
+      SPRING_RABBITMQ_PASSWORD: "test"
+    command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-processor.jar" ]
     depends_on:
       - configuration-server
       - discovery-server
@@ -133,9 +140,6 @@ services:
       POSTGRES_USER: "${POSTGRES_USER_RESOURCES}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
       POSTGRES_DB: "${POSTGRES_DB_RESOURCES}"
-    volumes:
-      - ./db/init-resources.sql:/docker-entrypoint-initdb.d/init-resources.sql
-      - ./resources:/resources
     networks:
       - app-network
 
@@ -161,6 +165,8 @@ services:
       POSTGRES_USER: "${POSTGRES_USER_STORAGE}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD_STORAGE}"
       POSTGRES_DB: "${POSTGRES_DB_STORAGE}"
+    volumes:
+      - ./db/init-storage.sql:/docker-entrypoint-initdb.d/init-storage.sql
     networks:
       - app-network
 

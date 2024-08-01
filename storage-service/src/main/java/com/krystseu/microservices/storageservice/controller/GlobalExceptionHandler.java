@@ -1,4 +1,4 @@
-package com.krystseu.microservices.storageservice.model.controller;
+package com.krystseu.microservices.storageservice.controller;
 
 import com.krystseu.microservices.storageservice.exception.InvalidStorageException;
 import com.krystseu.microservices.storageservice.exception.StorageNotFoundException;

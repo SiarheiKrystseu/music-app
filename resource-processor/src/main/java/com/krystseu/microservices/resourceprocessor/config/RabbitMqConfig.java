@@ -9,10 +9,18 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     @Value("${resource.rabbitmq.queue}")
-    private String queueName;
+    private String resourceQueueName;
+
+    @Value("${resource.ack.queue}")
+    private String resourceAckQueueName;
 
     @Bean
-    Queue queue() {
-        return new Queue(queueName, false);
+    Queue resourceQueue() {
+        return new Queue(resourceQueueName, false);
+    }
+
+    @Bean
+    Queue resourceAckQueue() {
+        return new Queue(resourceAckQueueName, false);
     }
 }

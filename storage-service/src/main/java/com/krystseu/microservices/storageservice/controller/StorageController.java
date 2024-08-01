@@ -1,8 +1,8 @@
-package com.krystseu.microservices.storageservice.model.controller;
+package com.krystseu.microservices.storageservice.controller;
 
 import com.krystseu.microservices.storageservice.exception.StorageNotFoundException;
 import com.krystseu.microservices.storageservice.model.Storage;
-import com.krystseu.microservices.storageservice.model.service.StorageService;
+import com.krystseu.microservices.storageservice.service.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

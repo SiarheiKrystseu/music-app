@@ -1,10 +1,11 @@
-package com.krystseu.microservices.storageservice.model.service.impl;
+package com.krystseu.microservices.storageservice.service.impl;
 
 import com.krystseu.microservices.storageservice.exception.InvalidStorageException;
+import com.krystseu.microservices.storageservice.exception.StorageNotFoundException;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
-import com.krystseu.microservices.storageservice.model.repository.StorageRepository;
-import com.krystseu.microservices.storageservice.model.service.StorageService;
+import com.krystseu.microservices.storageservice.repository.StorageRepository;
+import com.krystseu.microservices.storageservice.service.StorageService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,18 @@ public class StorageServiceImpl implements StorageService {
         return storageOptional;
     }
 
+    @Override
+    public Storage getStorageByType(StorageType storageType) {
+        log.info("Retrieving storage with type {}", storageType);
+        Optional<Storage> storageOptional = storageRepository.findByStorageType(storageType);
+        if (storageOptional.isPresent()) {
+            log.info("Found storage with type {}", storageType);
+        } else {
+            log.warn("Storage with type {} does not exist", storageType);
+            throw new StorageNotFoundException("The storage with the specified type does not exist");
+        }
+        return storageOptional.get();
+    }
     private void validateStorage(Storage storage) {
         // Check if storageType is valid
         if (storage.getStorageType() == null) {

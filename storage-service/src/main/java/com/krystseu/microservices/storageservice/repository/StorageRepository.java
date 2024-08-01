@@ -1,4 +1,4 @@
-package com.krystseu.microservices.storageservice.model.repository;
+package com.krystseu.microservices.storageservice.repository;
 
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
