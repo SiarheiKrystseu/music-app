@@ -232,13 +232,13 @@ public class ResourceServiceImpl implements ResourceService {
 
         try {
             Resource resource = getResource(resourceId);
-            Storage stagingStorage = storageServiceClient.getStorageByType(StorageType.PERMANENT);
+            Storage stagingStorage = storageServiceClient.getStorageByType(StorageType.STAGING);
             Storage permanentStorage = storageServiceClient.getStorageByType(StorageType.PERMANENT);
 
             String originalKey = extractKeyFromLocation(resource.getLocation(), stagingStorage.getPath());
             String newKey = formatS3Key(permanentStorage.getPath(), originalKey);
 
-            copyResourceToNewLocation(originalKey, newKey, permanentStorage);
+            copyResourceToNewLocation(originalKey, newKey);
             updateResourceLocationAndSave(resource, newKey, permanentStorage);
         } catch (IllegalArgumentException e) {
             log.error("Input validation failed for resource ID: {}", resourceId, e);
@@ -254,9 +254,9 @@ public class ResourceServiceImpl implements ResourceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with ID: " + resourceId));
     }
 
-    private void copyResourceToNewLocation(String originalKey, String newKey, Storage permanentStorage) {
+    private void copyResourceToNewLocation(String originalKey, String newKey) {
         String stagingBucketName = getBucketNameByStorageType(StorageType.STAGING);
-        String permanentBucketName = permanentStorage.getBucket();
+        String permanentBucketName = getBucketNameByStorageType(StorageType.PERMANENT);
 
         log.info("Initiating object copy from {} to {}/{}", stagingBucketName, permanentBucketName, newKey);
         amazonS3.copyObject(stagingBucketName, originalKey, permanentBucketName, newKey);

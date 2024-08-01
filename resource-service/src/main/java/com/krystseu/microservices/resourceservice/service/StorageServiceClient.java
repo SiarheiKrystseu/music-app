@@ -9,10 +9,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
-
-import java.time.Duration;
 import java.util.Map;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -21,39 +20,40 @@ public class StorageServiceClient {
 
     private final WebClient.Builder webClientBuilder;
     private final String storageServiceEndpoint;
-    private final Map<StorageType, Storage> storageMap = new ConcurrentHashMap<>();
+    private final Map<StorageType, Storage> stubStorageConfigurations = new ConcurrentHashMap<>();
 
     @Autowired
     public StorageServiceClient(WebClient.Builder webClientBuilder,
-                                @Value("${storage-service.endpoint}") String storageServiceEndpoint) {
+                                @Value("${storage-service.endpoint}") String storageServiceEndpoint,
+                                CircuitBreakerRegistry circuitBreakerRegistry) {
         this.webClientBuilder = webClientBuilder;
         this.storageServiceEndpoint = storageServiceEndpoint;
+
+        // Initialize stub storage configurations using the builder pattern
+        this.stubStorageConfigurations.put(StorageType.STAGING, Storage.builder()
+                .storageType(StorageType.STAGING)
+                .bucket("stub-staging-bucket")
+                .path("stub/staging/path")
+                .build());
+        this.stubStorageConfigurations.put(StorageType.PERMANENT, Storage.builder()
+                .storageType(StorageType.PERMANENT)
+                .bucket("stub-permanent-bucket")
+                .path("stub/permanent/path")
+                .build());
+        log.info("StorageServiceClient initialized with stub configurations");
     }
 
+    @CircuitBreaker(name = "storageServiceCircuitBreaker", fallbackMethod = "fallbackGetStorageByType")
     public Storage getStorageByType(StorageType storageType) {
-        Storage storage = storageMap.get(storageType);
-        if (storage == null) {
-            log.info("Storage configuration not found for type: {}, fetching configurations", storageType);
-            fetchAndBlockStorageConfigurations();
-            storage = storageMap.get(storageType);
-            if (storage == null) {
-                log.error("Storage configuration still not available for type: {}", storageType);
-                throw new StorageConfigurationException("Storage configuration not available for type: " + storageType);
-            }
-        }
-        return storage;
+        log.info("Fetching storage configuration for type: {}", storageType);
+        return fetchStorageConfigurations()
+                .blockOptional()
+                .map(configurations -> configurations.get(storageType))
+                .orElseThrow(() -> {
+                    log.error("Storage configuration not available for type: {}", storageType);
+                    return new StorageConfigurationException("Storage configuration not available for type: " + storageType);
+                });
     }
-
-    private void fetchAndBlockStorageConfigurations() {
-        Map<StorageType, Storage> configurations = fetchStorageConfigurations().block();
-        if (configurations != null) {
-            updateStorageMap(configurations);
-        } else {
-            log.error("Failed to fetch storage configurations synchronously");
-            throw new StorageConfigurationException("Failed to fetch storage configurations");
-        }
-    }
-
 
     private Mono<Map<StorageType, Storage>> fetchStorageConfigurations() {
         return webClientBuilder.build().get()
@@ -61,20 +61,17 @@ public class StorageServiceClient {
                 .retrieve()
                 .bodyToFlux(Storage.class)
                 .collectMap(Storage::getStorageType)
-                .retryWhen(Retry.backoff(3, Duration.ofSeconds(5)))
                 .doOnSuccess(map -> log.info("Successfully fetched storage configurations"))
                 .doOnError(error -> log.error("Failed to fetch storage configurations", error));
     }
 
-    private void updateStorageMap(Map<StorageType, Storage> newMap) {
-        storageMap.clear();
-        storageMap.putAll(newMap);
-        log.info("Updated storage configurations. Current storage types and configurations:");
-        newMap.forEach((type, storage) -> log.info("Storage Type: {}, Configuration: {}", type, storage));
-    }
-
-    private void handleError(Throwable throwable) {
-        log.error("Failed to fetch storage configurations", throwable);
+    public Storage fallbackGetStorageByType(StorageType storageType, Throwable throwable) {
+        log.warn("Fallback method invoked for storage type: {}. Reason: {}", storageType, throwable.getMessage());
+        return stubStorageConfigurations.get(storageType);
     }
 }
+
+
+
+
 
