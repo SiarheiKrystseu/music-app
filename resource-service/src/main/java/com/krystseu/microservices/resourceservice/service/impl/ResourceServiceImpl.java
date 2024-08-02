@@ -168,9 +168,10 @@ public class ResourceServiceImpl implements ResourceService {
 
     private boolean waitForResourceProcessing(Long resourceId, String correlationId) throws InterruptedException {
         final int maxAttempts = 10;
-        final long initialWaitTime = 1000;
+        final long waitTime = 1000;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            log.info("Attempting to process resource with ID {} (attempt {}/{})", resourceId, attempt + 1, maxAttempts);
             boolean success = attemptToProcessResource(correlationId);
             if (success) {
                 Resource resource = getResource(resourceId);
@@ -178,7 +179,6 @@ public class ResourceServiceImpl implements ResourceService {
                     return true;
                 }
             }
-            long waitTime = initialWaitTime * (long) Math.pow(2, attempt);
             Thread.sleep(waitTime);
         }
 
