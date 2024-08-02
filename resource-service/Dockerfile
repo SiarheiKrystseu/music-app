@@ -9,6 +9,6 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 WORKDIR /music-app
 COPY build/libs/resource-service.jar resource-service.jar
 
-EXPOSE 8083
+EXPOSE 8086
 
 CMD dockerize -wait tcp://configuration-server:8084 -timeout 1m java -jar resource-service.jar

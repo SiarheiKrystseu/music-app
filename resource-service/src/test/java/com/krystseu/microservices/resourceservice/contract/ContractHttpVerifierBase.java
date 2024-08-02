@@ -13,6 +13,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
+
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -29,3 +30,4 @@ public abstract class ContractHttpVerifierBase {
         RestAssuredMockMvc.mockMvc(mockMvc);
     }
 }
+

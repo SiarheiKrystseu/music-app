@@ -19,6 +19,9 @@ public class TestRabbitMqConfig {
     @Value("${resource.rabbitmq.queue}")
     private String queueName;
 
+    @Value("${resource.ack.queue}")
+    private String resourceAckQueueName;
+
     @Container
     public RabbitMQContainer rabbitMqContainer = new RabbitMQContainer()
             .waitingFor(Wait.forListeningPort())
@@ -33,6 +36,11 @@ public class TestRabbitMqConfig {
     @Bean
     Queue queue() {
         return new Queue(queueName, false);
+    }
+
+    @Bean
+    Queue resourceAckQueue() {
+        return new Queue(resourceAckQueueName, false);
     }
 
     @Bean

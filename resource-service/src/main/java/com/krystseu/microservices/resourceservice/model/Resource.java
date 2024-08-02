@@ -1,5 +1,6 @@
 package com.krystseu.microservices.resourceservice.model;
 
+import com.krystseu.microservices.storageservice.model.StorageType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,4 +21,8 @@ public class Resource {
 
     @Column(name = "location", nullable = false)
     private String location;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "storage_type")
+    private StorageType storageType;
 }

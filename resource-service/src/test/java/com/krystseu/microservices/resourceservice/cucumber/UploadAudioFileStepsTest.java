@@ -1,17 +1,12 @@
 package com.krystseu.microservices.resourceservice.cucumber;
 
-import com.krystseu.microservices.resourceservice.ResourceServiceApplication;
-import com.krystseu.microservices.resourceservice.config.AwsConfig;
 import com.krystseu.microservices.resourceservice.config.TestLocalStackConfig;
-import com.krystseu.microservices.resourceservice.service.ResourceService;
-import com.krystseu.microservices.songservice.service.SongService;
 import com.netflix.discovery.DiscoveryClient;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
