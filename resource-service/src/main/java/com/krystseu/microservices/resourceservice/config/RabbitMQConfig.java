@@ -1,5 +1,7 @@
 package com.krystseu.microservices.resourceservice.config;
 
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -13,6 +15,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 
 @Configuration
+@Slf4j
 public class RabbitMQConfig {
 
     @Value("${resource.rabbitmq.queue}")
@@ -72,9 +75,21 @@ public class RabbitMQConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setReplyTimeout(5000);
+
+        // Adding a BeforePublishPostProcessor to include the trace ID in message headers
+        rabbitTemplate.setBeforePublishPostProcessors(message -> {
+            String traceId = MDC.get("traceId"); // Retrieve the trace ID from MDC
+            if (traceId != null) {
+                message.getMessageProperties().setHeader("X-Trace-ID", traceId);
+            }
+            log.info("Sending message with Trace ID: {} to Exchange: {} with Routing Key: {}",
+                    traceId, message.getMessageProperties().getReceivedExchange(),
+                    message.getMessageProperties().getReceivedRoutingKey());
+            return message;
+        });
+
         return rabbitTemplate;
     }
-
     @Bean
     public String resourceQueueName() {
         return resourceQueueName;

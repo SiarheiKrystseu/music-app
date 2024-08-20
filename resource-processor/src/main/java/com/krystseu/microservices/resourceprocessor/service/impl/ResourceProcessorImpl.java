@@ -11,6 +11,7 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.mp3.Mp3Parser;
 import org.apache.tika.sax.BodyContentHandler;
+import org.slf4j.MDC;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,46 +55,40 @@ public class ResourceProcessorImpl implements ResourceProcessor {
         MessageProperties messageProperties = message.getMessageProperties();
         String resourceId = new String(message.getBody(), StandardCharsets.UTF_8);
         String correlationId = messageProperties.getCorrelationId();
+        String traceId = (String) messageProperties.getHeader("X-Trace-ID");
 
+        // Set traceId in MDC
+        MDC.put("traceId", traceId);
         log.info("Received message with resource ID: {} and correlation ID: {}", resourceId, correlationId);
 
         try {
-            // Get resource data from Resource Service
-            log.info("Fetching resource data for ID: {}", resourceId);
-            byte[] resourceData = resourceServiceClient.getResourceData(resourceId);
-            if (resourceData == null) {
-                log.error("Resource data for ID {} is null", resourceId);
-                throw new FileParsingException("Resource data cannot be null");
-            }
-
-            // Extract metadata from resource data
-            log.info("Extracting metadata from resource data");
-            Metadata metadata = extractMetadata(resourceData);
-
-            // Save metadata in Song Service
-            log.info("Saving metadata to Song Service");
-            songServiceClient.saveMetadata(metadata, Long.valueOf(resourceId));
-            log.info("Successfully processed resource with ID: {}", resourceId);
-
-            sendAcknowledgment(resourceId, correlationId);
+            // Process resource data
+            processResource(resourceId);
+            sendAcknowledgment(resourceId, correlationId, traceId);
             log.info("Sent acknowledgment for resource ID: {} with correlation ID: {}", resourceId, correlationId);
-        } catch (FileParsingException e) {
-            log.error("Failed to process resource with ID: {}. Reason: {}", resourceId, e.getMessage());
-            throw e;
         } catch (Exception e) {
-            log.error("Unexpected error occurred while processing resource with ID: {}", resourceId, e);
-            throw new RuntimeException(e);
+            log.error("Error processing resource ID: {}", resourceId, e);
+            throw e;
+        } finally {
+            MDC.clear(); // Clear MDC after processing
         }
     }
 
-    private void sendAcknowledgment(String resourceId, String correlationId) {
-        log.info("Sending acknowledgment for resource ID: {} with correlation ID: {}", resourceId, correlationId);
+    private void processResource(String resourceId) {
+        // Get and process resource data
+        byte[] resourceData = resourceServiceClient.getResourceData(resourceId);
+        Metadata metadata = extractMetadata(resourceData);
+        songServiceClient.saveMetadata(metadata, Long.valueOf(resourceId));
+        log.info("Successfully processed resource with ID: {}", resourceId);
+    }
 
-        MessageProperties messageProperties = new MessageProperties();
-        messageProperties.setCorrelationId(correlationId);
-        Message message = new Message(resourceId.getBytes(StandardCharsets.UTF_8), messageProperties);
+    private void sendAcknowledgment(String resourceId, String correlationId, String traceId) {
+        MessageProperties ackMessageProperties = new MessageProperties();
+        ackMessageProperties.setCorrelationId(correlationId);
+        ackMessageProperties.setHeader("X-Trace-ID", traceId);  // Include traceId in acknowledgment
 
-        rabbitTemplate.send(resourceAckQueue, message);
+        Message ackMessage = new Message(resourceId.getBytes(StandardCharsets.UTF_8), ackMessageProperties);
+        rabbitTemplate.send(resourceAckQueue, ackMessage);
     }
 
     @Override

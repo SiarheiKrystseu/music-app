@@ -1,0 +1,16 @@
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+    processors:
+      - add_docker_metadata: ~
+    exclude_files: ['\.gz$']
+    json.keys_under_root: true
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  username: "admin"
+  password: "admin"
+
+setup.kibana:
+  host: "http://kibana:5601"

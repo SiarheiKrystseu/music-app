@@ -1,8 +1,11 @@
 version: "3.9"
+
 services:
   resource-service:
     build:
       context: ./resource-service
+    labels:
+      prometheus.job: "resource-service"
     environment:
       SPRING_APPLICATION_NAME: "${RESOURCE_SERVICE_NAME}"
       SERVER_PORT: "${RESOURCE_SERVICE_PORT}"
@@ -11,7 +14,7 @@ services:
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_RESOURCES}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_RESOURCES}"
       LOCAL_RESOURCES_PATH: "/resources"
-      SPRING_RABBITMQ_HOST: "rabbitmq"  # Ensure RabbitMQ host matches the service name
+      SPRING_RABBITMQ_HOST: "rabbitmq"
       SPRING_RABBITMQ_PORT: "5672"
       SPRING_RABBITMQ_USERNAME: "test"
       SPRING_RABBITMQ_PASSWORD: "test"
@@ -36,7 +39,8 @@ services:
   storage-service:
     build:
       context: ./storage-service
-      dockerfile: Dockerfile
+    labels:
+      prometheus.job: "storage-service"
     environment:
       SPRING_APPLICATION_NAME: "${STORAGE_SERVICE_NAME}"
       SERVER_PORT: "${STORAGE_SERVICE_PORT}"
@@ -55,7 +59,8 @@ services:
   song-service:
     build:
       context: ./song-service
-      dockerfile: Dockerfile
+    labels:
+      prometheus.job: "song-service"
     environment:
       SERVER_PORT: "${SONG_SERVICE_PORT}"
       SPRING_APPLICATION_NAME: "${SONG_SERVICE_NAME}"
@@ -73,6 +78,8 @@ services:
 
   discovery-server:
     build: ./discovery-server
+    labels:
+      prometheus.job: "discovery-server"
     ports:
       - "${EUREKA_SERVER_PORT}:${EUREKA_SERVER_PORT}"
     environment:
@@ -89,11 +96,13 @@ services:
   resource-processor:
     build:
       context: ./resource-processor
+    labels:
+      prometheus.job: "resource-processor"
     environment:
       SPRING_APPLICATION_NAME: "${RESOURCE_PROCESSOR_NAME}"
       SERVER_PORT: "${RESOURCE_PROCESSOR_PORT}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
-      SPRING_RABBITMQ_HOST: "rabbitmq"  # Ensure consistency
+      SPRING_RABBITMQ_HOST: "rabbitmq"
       SPRING_RABBITMQ_PORT: "5672"
       SPRING_RABBITMQ_USERNAME: "test"
       SPRING_RABBITMQ_PASSWORD: "test"
@@ -109,7 +118,8 @@ services:
   api-gateway:
     build:
       context: ./api-gateway
-      dockerfile: Dockerfile
+    labels:
+      prometheus.job: "api-gateway"
     ports:
       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     environment:
@@ -124,6 +134,8 @@ services:
 
   configuration-server:
     build: ./configuration-server
+    labels:
+      prometheus.job: "configuration-server"
     ports:
       - "${CONFIG_SERVER_PORT}:${CONFIG_SERVER_PORT}"
     environment:
@@ -191,6 +203,65 @@ services:
       RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS}"
     networks:
       - app-network
+
+  prometheus:
+    image: prom/prometheus
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD}"
+    networks:
+      - app-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "xpack.security.enabled=false"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - app-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    ports:
+      - "5601:5601"
+    networks:
+      - app-network
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.5.0
+    user: root
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/var/lib/docker/containers:/var/lib/docker/containers:ro"
+      - "./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro"
+    depends_on:
+      - elasticsearch
+    networks:
+      - app-network
+
+volumes:
+  es_data:
+    driver: local
 
 networks:
   app-network:
