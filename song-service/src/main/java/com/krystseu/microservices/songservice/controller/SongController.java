@@ -5,6 +5,7 @@ import com.krystseu.microservices.songservice.dto.SongResponse;
 import com.krystseu.microservices.songservice.exception.SongNotFoundException;
 import com.krystseu.microservices.songservice.service.SongService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/songs")
+@Slf4j
 public class SongController {
 
     private final SongService songService;
@@ -28,6 +30,7 @@ public class SongController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getSongById(@PathVariable("id") Integer id) {
         try {
+            log.info("Getting song by id {}", id);
             Optional<SongResponse> songResponse = songService.getSongById(id);
             if (songResponse.isPresent()) {
                 return ResponseEntity.ok(songResponse);
@@ -41,12 +44,14 @@ public class SongController {
 
     @GetMapping
     public ResponseEntity<List<SongResponse>> getAllSongs() {
+        log.info("Getting list of songs");
         List<SongResponse> songs = songService.getAllSongs();
         return new ResponseEntity<>(songs, HttpStatus.OK);
     }
 
     @PostMapping
     public ResponseEntity<?> createSong(@Valid @RequestBody SongRequest songRequest, BindingResult bindingResult) {
+        log.info("Creating new song");
         if (bindingResult.hasErrors()) {
             return ResponseEntity.badRequest().body("Song metadata missing validation");
         }
@@ -62,6 +67,7 @@ public class SongController {
 
     @PutMapping("/{id}")
     public ResponseEntity<SongResponse> updateSong(@PathVariable(name = "id") Integer id, @RequestBody SongRequest updatedSongRequest) {
+        log.info("Updating song with id {}", id);
         SongResponse updatedSongResponse = songService.updateSong(id, updatedSongRequest);
         return new ResponseEntity<>(updatedSongResponse, HttpStatus.OK);
     }
@@ -69,6 +75,7 @@ public class SongController {
     @DeleteMapping
     public ResponseEntity<?> deleteSongs(@RequestParam("ids") String idsCSV) {
         try {
+            log.info("Deleting song with ids {}", idsCSV);
             List<Integer> deletedIds = songService.deleteSongs(idsCSV);
             return ResponseEntity.ok().body(Collections.singletonMap("ids", deletedIds));
         } catch (SongNotFoundException e) {

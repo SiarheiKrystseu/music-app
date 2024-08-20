@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'music-app'
+    metrics_path: '/actuator/prometheus'
+    eureka_sd_configs:
+      - server: 'http://discovery-server:8761/eureka'
+        refresh_interval: 30s
+    relabel_configs:
+      # Relabel the instance label to use the Eureka application name
+      - source_labels: [__meta_eureka_app_name]
+        target_label: 'instance'
+      # Optionally add more metadata as labels
+      - source_labels: [__meta_eureka_app_instance_metadata_version]
+        target_label: 'version'

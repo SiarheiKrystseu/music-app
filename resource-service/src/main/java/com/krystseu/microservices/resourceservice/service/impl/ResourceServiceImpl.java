@@ -10,6 +10,7 @@ import com.krystseu.microservices.resourceservice.repository.ResourceRepository;
 import com.krystseu.microservices.resourceservice.service.*;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
+import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -138,8 +139,9 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Async
     public void processResourceAsync(Resource savedResource) {
+        String traceId = MDC.get("traceId");
         String correlationId = UUID.randomUUID().toString();
-        sendMessageToProcessQueue(savedResource.getId().toString(), correlationId);
+        sendMessageToProcessQueue(savedResource.getId().toString(), correlationId, traceId);
 
         try {
             // Wait for acknowledgment
@@ -155,15 +157,16 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private void sendMessageToProcessQueue(String resourceId, String correlationId) {
+    private void sendMessageToProcessQueue(String resourceId, String correlationId, String traceId) {
         MessageProperties messageProperties = new MessageProperties();
         messageProperties.setCorrelationId(correlationId);
         messageProperties.setHeader("replyTo", ackQueue);
+        messageProperties.setHeader("X-Trace-ID", traceId);
 
         Message message = new Message(resourceId.getBytes(StandardCharsets.UTF_8), messageProperties);
 
         rabbitTemplate.convertAndSend("resource.exchange", "process.routing.key", message);
-        log.info("Sent message to process queue with resource ID: {} and correlation ID: {}", resourceId, correlationId);
+        log.info("Sent message to process queue with resource ID: {} and Trace ID: {}", resourceId, traceId);
     }
 
     private boolean waitForResourceProcessing(Long resourceId, String correlationId) throws InterruptedException {
@@ -188,6 +191,8 @@ public class ResourceServiceImpl implements ResourceService {
     private boolean attemptToProcessResource(String correlationId) {
         Message response = rabbitTemplate.receive(ackQueue, 1000);
         if (response != null && correlationId.equals(response.getMessageProperties().getCorrelationId())) {
+            String traceId = response.getMessageProperties().getHeader("X-Trace-ID");
+            MDC.put("traceId", traceId);  // Set traceId in MDC
             return handleAcknowledgment(response);
         }
         return false;
