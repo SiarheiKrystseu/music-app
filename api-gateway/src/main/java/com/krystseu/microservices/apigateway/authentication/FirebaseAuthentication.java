@@ -1,4 +1,4 @@
-package com.krystseu.microservices.apigateway.security;
+package com.krystseu.microservices.apigateway.authentication;
 
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.security.core.Authentication;

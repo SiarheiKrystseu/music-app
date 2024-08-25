@@ -16,6 +16,7 @@ dependencies {
 
 	implementation('com.google.firebase:firebase-admin:9.3.0')
 	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'jakarta.servlet:jakarta.servlet-api:5.0.0'
 
 	implementation 'io.grpc:grpc-netty:1.66.0'
 	implementation 'io.grpc:grpc-protobuf:1.66.0'
