@@ -6,6 +6,8 @@ import com.krystseu.microservices.storageservice.model.StorageType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -24,12 +26,11 @@ public class StorageServiceClient {
 
     @Autowired
     public StorageServiceClient(WebClient.Builder webClientBuilder,
-                                @Value("${storage-service.endpoint}") String storageServiceEndpoint,
-                                CircuitBreakerRegistry circuitBreakerRegistry) {
+                                @Value("${storage-service.endpoint}") String storageServiceEndpoint) {
         this.webClientBuilder = webClientBuilder;
         this.storageServiceEndpoint = storageServiceEndpoint;
 
-        // Initialize stub storage configurations using the builder pattern
+        // Initialize stub storage configurations
         this.stubStorageConfigurations.put(StorageType.STAGING, Storage.builder()
                 .storageType(StorageType.STAGING)
                 .bucket("stub-staging-bucket")
@@ -40,6 +41,7 @@ public class StorageServiceClient {
                 .bucket("stub-permanent-bucket")
                 .path("stub/permanent/path")
                 .build());
+
         log.info("StorageServiceClient initialized with stub configurations");
     }
 
@@ -56,8 +58,11 @@ public class StorageServiceClient {
     }
 
     private Mono<Map<StorageType, Storage>> fetchStorageConfigurations() {
+        String authToken = getAuthTokenFromContext(); // Get the Authorization token
+
         return webClientBuilder.build().get()
                 .uri(storageServiceEndpoint)
+                .header("Authorization", "Bearer " + authToken) // Add Authorization header
                 .retrieve()
                 .bodyToFlux(Storage.class)
                 .collectMap(Storage::getStorageType)
@@ -65,11 +70,22 @@ public class StorageServiceClient {
                 .doOnError(error -> log.error("Failed to fetch storage configurations", error));
     }
 
+    private String getAuthTokenFromContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() != null) {
+            log.info("Retrieving auth token: {}",authentication.getCredentials().toString());
+            return authentication.getCredentials().toString();
+        }
+        log.warn("Authorization token not found in the security context.");
+        return "";
+    }
+
     public Storage fallbackGetStorageByType(StorageType storageType, Throwable throwable) {
         log.warn("Fallback method invoked for storage type: {}. Reason: {}", storageType, throwable.getMessage());
         return stubStorageConfigurations.get(storageType);
     }
 }
+
 
 
 

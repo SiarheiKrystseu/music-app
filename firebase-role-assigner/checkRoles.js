@@ -9,7 +9,7 @@ admin.initializeApp({
 const auth = admin.auth();
 
 // Replace with the email address of the user you want to check
-const email = 'admin@email.com';
+const email = 'user1@email.com';
 
 async function checkRoles() {
   try {

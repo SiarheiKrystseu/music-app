@@ -1,14 +1,12 @@
-package com.krystseu.microservices.apigateway.authentication;
+package com.krystseu.microservices.resourceprocessor.firebase;
 
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 public class FirebaseAuthentication implements Authentication {
 
@@ -21,27 +19,19 @@ public class FirebaseAuthentication implements Authentication {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Convert Firebase roles to Spring Security roles
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        List<String> roles = (List<String>) firebaseToken.getClaims().get("roles");
-
-        if (roles != null) {
-            for (String role : roles) {
-                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
-            }
-        }
-
-        return authorities;
+        // Example role assignment. Adjust according to your needs.
+        return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override
     public Object getCredentials() {
-        return firebaseToken;
+        // FirebaseToken doesn't have a getToken() method. Use uid or email as credentials.
+        return firebaseToken.getUid(); // or use firebaseToken.getEmail()
     }
 
     @Override
     public Object getDetails() {
-        return null;
+        return firebaseToken;
     }
 
     @Override
@@ -61,7 +51,8 @@ public class FirebaseAuthentication implements Authentication {
 
     @Override
     public String getName() {
-        return firebaseToken.getUid();
+        // FirebaseToken has no direct method for name; you may return email or UID
+        return firebaseToken.getEmail(); // or firebaseToken.getUid()
     }
 }
 

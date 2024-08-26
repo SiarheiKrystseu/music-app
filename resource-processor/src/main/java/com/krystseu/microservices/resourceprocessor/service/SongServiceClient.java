@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -40,11 +42,14 @@ public class SongServiceClient {
     public void saveMetadata(Metadata metadata, Long resourceId) {
         SongRequest songRequest = createSongRequestFromMetadata(metadata, resourceId);
         String traceId = MDC.get("traceId");  // Retrieve traceId from MDC
+        String authToken = getAuthTokenFromContext(); // Retrieve the Authorization token
+
         log.debug("Sending metadata to song service for resource ID: {}, Trace ID: {}", resourceId, traceId);
 
         webClientBuilder.build()
                 .post()
                 .uri(songServiceEndpoint)
+                .header("Authorization", "Bearer " + authToken) // Add Authorization header
                 .header("X-Trace-ID", traceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(songRequest))
@@ -59,6 +64,15 @@ public class SongServiceClient {
                     log.error("Failed to save metadata for resource ID: {}", resourceId, error);
                 })
                 .block();
+    }
+
+    private String getAuthTokenFromContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() != null) {
+            return authentication.getCredentials().toString();
+        }
+        log.warn("Authorization token not found in the security context.");
+        return "";
     }
 
     private void sendResponseBackToResourceService(Object response, String queueName) {
@@ -104,3 +118,4 @@ public class SongServiceClient {
         return String.format("%d:%02d", minutes, seconds);
     }
 }
+

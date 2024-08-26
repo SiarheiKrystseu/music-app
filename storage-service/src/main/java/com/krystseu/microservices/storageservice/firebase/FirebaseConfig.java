@@ -1,4 +1,4 @@
-package com.krystseu.microservices.apigateway.config;
+package com.krystseu.microservices.storageservice.firebase;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;

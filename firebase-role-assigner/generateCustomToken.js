@@ -22,7 +22,8 @@ async function generateCustomToken(uid) {
 
 // Main function to generate custom token
 async function main() {
-  const uid = 'HdmMnvj1nJaeQMaYcMinympxXny2'; // Replace with your user's UID
+  //const uid = 'HdmMnvj1nJaeQMaYcMinympxXny2'; // Admin user
+  const uid = 'EyLDifcNeGbVyJMXwSezvfnL8Q53'; // User1
 
   try {
     // Generate custom token

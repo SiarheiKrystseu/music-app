@@ -47,19 +47,17 @@ class SongControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void testGetAllSongs() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/songs")
-                        .header("X-User-Roles", "USER")
-                        .header("X-User-ID", "testUserId"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/songs"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$", Matchers.hasSize(3)));
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void testGetSongById() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/songs/1")
-                        .header("X-User-Roles", "USER")
-                        .header("X-User-ID", "testUserId"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/songs/1"))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.name", Matchers.is("Song1")))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.artist", Matchers.is("Artist1")))
@@ -67,14 +65,12 @@ class SongControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testCreateSong() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.post("/api/songs")
-                        .header("X-User-Roles", "ADMIN")
-                        .header("X-User-ID", "testAdminId")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ \"name\": \"Test Song\", \"artist\": \"Test Artist\", \"album\": \"Test Album\", \"length\": \"3:30\", \"resourceId\": 123, \"release\": \"2021\" }"))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").value("4"));
     }
-
 }

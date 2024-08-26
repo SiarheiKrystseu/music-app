@@ -1,4 +1,4 @@
-package com.krystseu.microservices.songservice.config;
+package com.krystseu.microservices.resourceservice.config;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.krystseu.microservices.songservice.firebase.HeaderAuthorizationFilter;
@@ -29,23 +29,21 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("/actuator/prometheus").permitAll()
                                 .requestMatchers("/api/songs/**").hasAnyRole(ROLE_USER, ROLE_ADMIN)
+                                .requestMatchers("/api/storages/**").hasAnyRole(ROLE_USER, ROLE_ADMIN)
+                                .requestMatchers("/api/resources/**").hasAnyRole(ROLE_USER, ROLE_ADMIN)
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(new HeaderAuthorizationFilter(firebaseAuth), UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 }
-
-
-
-
 
 
 

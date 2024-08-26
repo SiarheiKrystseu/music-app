@@ -1,4 +1,4 @@
-package com.krystseu.microservices.apigateway.authentication;
+package com.krystseu.microservices.storageservice.firebase;
 
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.security.core.Authentication;
@@ -7,7 +7,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class FirebaseAuthentication implements Authentication {
@@ -64,6 +63,7 @@ public class FirebaseAuthentication implements Authentication {
         return firebaseToken.getUid();
     }
 }
+
 
 
 

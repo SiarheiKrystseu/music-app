@@ -5,6 +5,8 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import com.krystseu.microservices.apigateway.authentication.FirebaseAuthentication;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
@@ -16,9 +18,8 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
-import java.util.List;
-import java.util.Collections;
-import java.util.Map;
+
+import java.nio.charset.StandardCharsets;
 
 @Component
 @Slf4j
@@ -36,7 +37,7 @@ public class FirebaseAuthenticationFilter implements WebFilter {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("No Authorization header found or invalid header format");
-            return handleUnauthorized(exchange);
+            return handleUnauthorized(exchange, "No Authorization header found or invalid header format");
         }
 
         String idToken = authHeader.substring(7);
@@ -55,51 +56,40 @@ public class FirebaseAuthenticationFilter implements WebFilter {
     private Mono<Void> processValidToken(ServerWebExchange exchange, WebFilterChain chain, FirebaseToken decodedToken) {
         log.debug("Successfully verified ID Token for UID: {}", decodedToken.getUid());
 
-        // Extract custom claims (e.g., roles)
-        List<String> roles = extractRolesFromClaims(decodedToken.getClaims());
-        log.debug("Extracted roles from token: {}", roles);
-
-        // Convert roles list to a comma-separated string
-        String rolesHeader = roles != null ? String.join(",", roles) : "";
-
-        // Add roles and user ID to request headers
-        ServerHttpRequest requestWithRoles = exchange.getRequest().mutate()
-                .header("X-User-Roles", rolesHeader)
-                .header("X-User-ID", decodedToken.getUid())
-                .build();
-
         // Create a security context with the decoded token
         Authentication authentication = new FirebaseAuthentication(decodedToken);
         SecurityContext securityContext = new SecurityContextImpl(authentication);
         log.debug("Authentication created for UID: {}", decodedToken.getUid());
 
-        return chain.filter(exchange.mutate().request(requestWithRoles).build())
+        // Forward the original Authorization header
+        ServerHttpRequest requestWithAuthorization = exchange.getRequest().mutate()
+                .header("Authorization", exchange.getRequest().getHeaders().getFirst("Authorization"))
+                .build();
+
+        return chain.filter(exchange.mutate().request(requestWithAuthorization).build())
                 .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(securityContext)));
     }
 
-    private List<String> extractRolesFromClaims(Map<String, Object> claims) {
-        if (claims == null) {
-            return Collections.emptyList();
-        }
-
-        // Safely extract roles from claims
-        Object rolesObject = claims.get("roles");
-        if (rolesObject instanceof List<?>) {
-            @SuppressWarnings("unchecked")
-            List<String> roles = (List<String>) rolesObject;
-            return roles;
-        }
-        return Collections.emptyList();
-    }
-
-    private Mono<Void> handleUnauthorized(ServerWebExchange exchange) {
+    private Mono<Void> handleUnauthorized(ServerWebExchange exchange, String message) {
         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-        return exchange.getResponse().setComplete();
+        DataBufferFactory dataBufferFactory = exchange.getResponse().bufferFactory();
+        DataBuffer dataBuffer = dataBufferFactory.wrap(message.getBytes(StandardCharsets.UTF_8));
+        return exchange.getResponse().writeWith(Mono.just(dataBuffer));
     }
 
     private Mono<Void> handleFirebaseAuthException(ServerWebExchange exchange, FirebaseAuthException e) {
         log.error("FirebaseAuthException occurred", e);
-        return handleUnauthorized(exchange);
+
+        String errorMessage;
+
+        // Check if the exception is due to token expiration
+        if (e.getMessage() != null && e.getMessage().contains("Firebase ID token has expired")) {
+            errorMessage = "Token has expired. Please get a new token.";
+        } else {
+            errorMessage = "Authentication failed: " + e.getMessage();
+        }
+
+        return handleUnauthorized(exchange, errorMessage);
     }
 
     private Mono<Void> handleUnexpectedException(ServerWebExchange exchange, Exception e) {
@@ -108,5 +98,3 @@ public class FirebaseAuthenticationFilter implements WebFilter {
         return exchange.getResponse().setComplete();
     }
 }
-
-
