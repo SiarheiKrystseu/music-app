@@ -63,8 +63,8 @@ public class ResourceProcessorImpl implements ResourceProcessor {
         MessageProperties messageProperties = message.getMessageProperties();
         String resourceId = new String(message.getBody(), StandardCharsets.UTF_8);
         String correlationId = messageProperties.getCorrelationId();
-        String traceId = (String) messageProperties.getHeader("X-Trace-ID");
-        String authHeader = (String) messageProperties.getHeader("Authorization");
+        String traceId = messageProperties.getHeader("X-Trace-ID");
+        String authHeader = messageProperties.getHeader("Authorization");
 
         // Set traceId in MDC
         MDC.put("traceId", traceId);

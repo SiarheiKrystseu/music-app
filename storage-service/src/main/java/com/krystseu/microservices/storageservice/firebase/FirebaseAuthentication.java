@@ -11,7 +11,7 @@ import java.util.List;
 
 public class FirebaseAuthentication implements Authentication {
 
-    private final FirebaseToken firebaseToken;
+    private final transient FirebaseToken firebaseToken;
     private boolean authenticated = true;
     private final String rawToken;
 

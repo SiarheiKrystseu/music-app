@@ -41,7 +41,6 @@ public class FirebaseAuthenticationFilter implements WebFilter {
         }
 
         String idToken = authHeader.substring(7);
-        log.info("Extracted ID Token: {}", idToken);
 
         return Mono.fromCallable(() -> verifyToken(idToken))
                 .flatMap(decodedToken -> processValidToken(exchange, chain, decodedToken))
@@ -54,8 +53,6 @@ public class FirebaseAuthenticationFilter implements WebFilter {
     }
 
     private Mono<Void> processValidToken(ServerWebExchange exchange, WebFilterChain chain, FirebaseToken decodedToken) {
-        log.info("Successfully verified ID Token for UID: {}", decodedToken.getUid());
-
         // Create a security context with the decoded token
         Authentication authentication = new FirebaseAuthentication(decodedToken);
         SecurityContext securityContext = new SecurityContextImpl(authentication);

@@ -36,7 +36,6 @@ public class FirebaseAuthUtils {
     public String getAuthTokenFromContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof FirebaseAuthentication firebaseAuth) {
-            log.info("Retrieving auth token: {}", firebaseAuth.getRawToken());
             return firebaseAuth.getRawToken();
         }
         log.warn("Authorization token not found in the security context.");

@@ -29,7 +29,6 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String authHeader = httpRequest.getHeader("Authorization");
-        log.info("Retrieved authHeader: {}", authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
