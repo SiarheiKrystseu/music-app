@@ -1,6 +1,7 @@
 package com.krystseu.microservices.resourceservice.service;
 
 import com.krystseu.microservices.resourceservice.exception.StorageConfigurationException;
+import com.krystseu.microservices.resourceservice.firebase.FirebaseAuthentication;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import java.util.Map;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -72,9 +72,9 @@ public class StorageServiceClient {
 
     private String getAuthTokenFromContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getCredentials() != null) {
-            log.info("Retrieving auth token: {}",authentication.getCredentials().toString());
-            return authentication.getCredentials().toString();
+        if (authentication instanceof FirebaseAuthentication firebaseAuth) {
+            log.info("Retrieving auth token: {}", firebaseAuth.getRawToken());
+            return firebaseAuth.getRawToken();
         }
         log.warn("Authorization token not found in the security context.");
         return "";
@@ -85,9 +85,3 @@ public class StorageServiceClient {
         return stubStorageConfigurations.get(storageType);
     }
 }
-
-
-
-
-
-

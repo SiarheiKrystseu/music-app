@@ -5,33 +5,44 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 public class FirebaseAuthentication implements Authentication {
 
     private final FirebaseToken firebaseToken;
     private boolean authenticated = true;
+    private final String rawToken;
 
-    public FirebaseAuthentication(FirebaseToken firebaseToken) {
+    public FirebaseAuthentication(FirebaseToken firebaseToken, String rawToken) {
         this.firebaseToken = firebaseToken;
+        this.rawToken = rawToken;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Example role assignment. Adjust according to your needs.
-        return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
+        // Convert Firebase roles to Spring Security roles
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        List<String> roles = (List<String>) firebaseToken.getClaims().get("roles");
+
+        if (roles != null) {
+            for (String role : roles) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+            }
+        }
+
+        return authorities;
     }
 
     @Override
     public Object getCredentials() {
-        // FirebaseToken doesn't have a getToken() method. Use uid or email as credentials.
-        return firebaseToken.getUid(); // or use firebaseToken.getEmail()
+        return firebaseToken;
     }
 
     @Override
     public Object getDetails() {
-        return firebaseToken;
+        return null;
     }
 
     @Override
@@ -51,8 +62,11 @@ public class FirebaseAuthentication implements Authentication {
 
     @Override
     public String getName() {
-        // FirebaseToken has no direct method for name; you may return email or UID
-        return firebaseToken.getEmail(); // or firebaseToken.getUid()
+        return firebaseToken.getUid();
+    }
+
+    public String getRawToken() {
+        return rawToken;
     }
 }
 

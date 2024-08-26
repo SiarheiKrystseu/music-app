@@ -10,17 +10,11 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 
 @Slf4j
@@ -39,20 +33,23 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String authHeader = httpRequest.getHeader("Authorization");
-
+        log.info("Retrieved authHeader: {}", authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
             try {
                 FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
-                Authentication authentication = new FirebaseAuthentication(decodedToken);
+                Authentication authentication = new FirebaseAuthentication(decodedToken, token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.info("Authentication set for user: {} with roles: {}",
+                        decodedToken.getUid(),
+                        authentication.getAuthorities());
             } catch (FirebaseAuthException e) {
-                log.error("FirebaseAuthException: {}", e.getMessage());
+                log.error("FirebaseAuthException: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             } catch (Exception e) {
-                log.error("Unexpected error: {}", e.getMessage());
+                log.error("Unexpected error: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -61,9 +58,3 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         chain.doFilter(request, response);
     }
 }
-
-
-
-
-
-

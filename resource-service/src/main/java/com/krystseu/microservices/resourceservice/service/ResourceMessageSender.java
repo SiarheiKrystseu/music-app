@@ -1,5 +1,6 @@
 package com.krystseu.microservices.resourceservice.service;
 
+import com.krystseu.microservices.resourceservice.firebase.FirebaseAuthentication;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.amqp.core.Message;
@@ -10,8 +11,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-@Service
 @Slf4j
+@Service
 public class ResourceMessageSender {
 
     private final RabbitTemplate rabbitTemplate;
@@ -38,12 +39,11 @@ public class ResourceMessageSender {
 
     private String getAuthTokenFromContext() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getCredentials() != null) {
-            log.info("Retrieving auth token: {}",authentication.getCredentials().toString());
-            return authentication.getCredentials().toString();
+        if (authentication instanceof FirebaseAuthentication firebaseAuth) {
+            log.info("Retrieving auth token: {}", firebaseAuth.getRawToken());
+            return firebaseAuth.getRawToken();
         }
         log.warn("Authorization token not found in the security context.");
         return "";
     }
 }
-

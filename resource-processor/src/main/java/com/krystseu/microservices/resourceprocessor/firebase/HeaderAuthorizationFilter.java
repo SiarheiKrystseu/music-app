@@ -1,6 +1,5 @@
 package com.krystseu.microservices.resourceprocessor.firebase;
 
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.FilterChain;
@@ -10,20 +9,17 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
 
-
 @Slf4j
 public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFilter {
 
-    private final FirebaseAuth firebaseAuth;
+    private final FirebaseAuthUtils firebaseAuthUtils;
 
-    public HeaderAuthorizationFilter(FirebaseAuth firebaseAuth) {
-        this.firebaseAuth = firebaseAuth;
+    public HeaderAuthorizationFilter(FirebaseAuthUtils firebaseAuthUtils) {
+        this.firebaseAuthUtils = firebaseAuthUtils;
     }
 
     @Override
@@ -33,20 +29,19 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String authHeader = httpRequest.getHeader("Authorization");
-
+        log.info("Retrieved authHeader: {}", authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
             try {
-                FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
-                Authentication authentication = new FirebaseAuthentication(decodedToken);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                FirebaseToken decodedToken = firebaseAuthUtils.verifyToken(token);
+                firebaseAuthUtils.setAuthentication(decodedToken, token);
             } catch (FirebaseAuthException e) {
-                log.error("FirebaseAuthException: {}", e.getMessage());
+                log.error("FirebaseAuthException: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             } catch (Exception e) {
-                log.error("Unexpected error: {}", e.getMessage());
+                log.error("Unexpected error: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -55,9 +50,3 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         chain.doFilter(request, response);
     }
 }
-
-
-
-
-
-

@@ -13,9 +13,11 @@ public class FirebaseAuthentication implements Authentication {
 
     private final FirebaseToken firebaseToken;
     private boolean authenticated = true;
+    private final String rawToken;
 
-    public FirebaseAuthentication(FirebaseToken firebaseToken) {
+    public FirebaseAuthentication(FirebaseToken firebaseToken, String rawToken) {
         this.firebaseToken = firebaseToken;
+        this.rawToken = rawToken;
     }
 
     @Override
@@ -62,8 +64,8 @@ public class FirebaseAuthentication implements Authentication {
     public String getName() {
         return firebaseToken.getUid();
     }
+
+    public String getRawToken() {
+        return rawToken;
+    }
 }
-
-
-
-

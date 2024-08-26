@@ -1,7 +1,7 @@
 package com.krystseu.microservices.resourceservice.config;
 
 import com.google.firebase.auth.FirebaseAuth;
-import com.krystseu.microservices.songservice.firebase.HeaderAuthorizationFilter;
+import com.krystseu.microservices.resourceservice.firebase.HeaderAuthorizationFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;

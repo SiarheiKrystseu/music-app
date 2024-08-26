@@ -33,20 +33,23 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String authHeader = httpRequest.getHeader("Authorization");
-
+        log.info("Retrieved authHeader: {}", authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
             try {
                 FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
-                Authentication authentication = new FirebaseAuthentication(decodedToken);
+                Authentication authentication = new FirebaseAuthentication(decodedToken, token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.info("Authentication set for user: {} with roles: {}",
+                        decodedToken.getUid(),
+                        authentication.getAuthorities());
             } catch (FirebaseAuthException e) {
-                log.error("FirebaseAuthException: {}", e.getMessage());
+                log.error("FirebaseAuthException: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             } catch (Exception e) {
-                log.error("Unexpected error: {}", e.getMessage());
+                log.error("Unexpected error: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
@@ -55,9 +58,4 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         chain.doFilter(request, response);
     }
 }
-
-
-
-
-
 

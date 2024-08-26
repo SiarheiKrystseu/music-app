@@ -32,24 +32,18 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        log.debug("Incoming request URI: {}", httpRequest.getRequestURI());
         String authHeader = httpRequest.getHeader("Authorization");
-        log.debug("Authorization header: {}", authHeader);
-
+        log.info("Retrieved authHeader: {}", authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
             try {
-                log.debug("Processing token: {}", token);
                 FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
-                log.info("Claims from Firebase Token: {}", decodedToken.getClaims());
-
-                Authentication authentication = new FirebaseAuthentication(decodedToken);
+                Authentication authentication = new FirebaseAuthentication(decodedToken, token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
                 log.info("Authentication set for user: {} with roles: {}",
                         decodedToken.getUid(),
                         authentication.getAuthorities());
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (FirebaseAuthException e) {
                 log.error("FirebaseAuthException: {}", e.getMessage(), e);
                 httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -59,20 +53,8 @@ public class HeaderAuthorizationFilter extends UsernamePasswordAuthenticationFil
                 httpResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
             }
-        } else {
-            log.debug("No Authorization header or not a Bearer token");
         }
 
         chain.doFilter(request, response);
     }
 }
-
-
-
-
-
-
-
-
-
-
