@@ -1,5 +1,6 @@
 package com.krystseu.microservices.resourceprocessor.service;
 
+import com.krystseu.microservices.resourceprocessor.firebase.FirebaseAuthUtils;
 import com.krystseu.microservices.songservice.dto.SongRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.metadata.Metadata;
@@ -25,26 +26,32 @@ public class SongServiceClient {
     private final String songServiceEndpoint;
     private final ApplicationEventPublisher eventPublisher;
     private final RabbitTemplate rabbitTemplate;
+    private final FirebaseAuthUtils firebaseAuthUtils;
 
     @Autowired
     public SongServiceClient(WebClient.Builder webClientBuilder,
                              @Value("${song-service.endpoint}") String songServiceEndpoint,
                              ApplicationEventPublisher eventPublisher,
-                             RabbitTemplate rabbitTemplate) {
+                             RabbitTemplate rabbitTemplate,
+                             FirebaseAuthUtils firebaseAuthUtils) {
         this.webClientBuilder = webClientBuilder;
         this.songServiceEndpoint = songServiceEndpoint;
         this.eventPublisher = eventPublisher;
         this.rabbitTemplate = rabbitTemplate;
+        this.firebaseAuthUtils = firebaseAuthUtils;
     }
 
     public void saveMetadata(Metadata metadata, Long resourceId) {
         SongRequest songRequest = createSongRequestFromMetadata(metadata, resourceId);
-        String traceId = MDC.get("traceId");  // Retrieve traceId from MDC
+        String traceId = MDC.get("traceId");
+        String authToken = firebaseAuthUtils.getAuthTokenFromContext();
+
         log.debug("Sending metadata to song service for resource ID: {}, Trace ID: {}", resourceId, traceId);
 
         webClientBuilder.build()
                 .post()
                 .uri(songServiceEndpoint)
+                .header("Authorization", "Bearer " + authToken)
                 .header("X-Trace-ID", traceId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(songRequest))
@@ -53,7 +60,7 @@ public class SongServiceClient {
                 .doOnSuccess(aVoid -> {
                     log.info("Successfully saved metadata for resource ID: {}", resourceId);
                     eventPublisher.publishEvent(new SongMetadataSavedEvent(resourceId));
-                    sendResponseBackToResourceService("Response Object", "queueName"); // Replace "Response Object" and "queueName" as needed
+                    sendResponseBackToResourceService("Response Object", "queueName");
                 })
                 .doOnError(error -> {
                     log.error("Failed to save metadata for resource ID: {}", resourceId, error);

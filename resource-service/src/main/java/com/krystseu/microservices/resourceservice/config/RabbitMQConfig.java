@@ -1,5 +1,6 @@
 package com.krystseu.microservices.resourceservice.config;
 
+import com.krystseu.microservices.resourceservice.firebase.FirebaseAuthentication;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.amqp.core.Binding;
@@ -12,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 
 @Configuration
@@ -76,20 +79,40 @@ public class RabbitMQConfig {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setReplyTimeout(5000);
 
-        // Adding a BeforePublishPostProcessor to include the trace ID in message headers
+        // Adding a BeforePublishPostProcessor to include the trace ID and Authorization header in message headers
         rabbitTemplate.setBeforePublishPostProcessors(message -> {
-            String traceId = MDC.get("traceId"); // Retrieve the trace ID from MDC
+            // Retrieve the trace ID from MDC
+            String traceId = MDC.get("traceId");
             if (traceId != null) {
                 message.getMessageProperties().setHeader("X-Trace-ID", traceId);
             }
-            log.info("Sending message with Trace ID: {} to Exchange: {} with Routing Key: {}",
-                    traceId, message.getMessageProperties().getReceivedExchange(),
+
+            // Retrieve the Authorization header from the security context
+            String authToken = getAuthTokenFromContext();
+            if (!authToken.isEmpty()) {
+                message.getMessageProperties().setHeader("Authorization", "Bearer " + authToken);
+            }
+
+            log.info("Sending message with Trace ID: {} and Authorization: {} to Exchange: {} with Routing Key: {}",
+                    traceId, authToken, message.getMessageProperties().getReceivedExchange(),
                     message.getMessageProperties().getReceivedRoutingKey());
+
             return message;
         });
 
         return rabbitTemplate;
     }
+
+    private String getAuthTokenFromContext() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof FirebaseAuthentication firebaseAuth) {
+            log.info("Retrieving auth token: {}", firebaseAuth.getRawToken());
+            return firebaseAuth.getRawToken();
+        }
+        log.warn("Authorization token not found in the security context.");
+        return "";
+    }
+
     @Bean
     public String resourceQueueName() {
         return resourceQueueName;

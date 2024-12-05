@@ -3,14 +3,17 @@ package com.krystseu.microservices.storageservice.controller;
 import com.krystseu.microservices.storageservice.exception.StorageNotFoundException;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.service.StorageService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.InvalidParameterException;
 import java.util.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/storages")
 public class StorageController {
@@ -23,7 +26,9 @@ public class StorageController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Map<String, Long> createStorage(@RequestBody Storage storage) {
+        log.info("Creating storage..");
         Storage savedStorage = storageService.createStorage(storage);
         Map<String, Long> responseBody = new HashMap<>();
         responseBody.put("id", savedStorage.getId());
@@ -31,6 +36,7 @@ public class StorageController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Storage> getStorage(@PathVariable Long id) {
         return storageService.getStorageById(id)
                 .map(ResponseEntity::ok)
@@ -38,12 +44,14 @@ public class StorageController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<List<Storage>> getAllStorages() {
         List<Storage> storages = storageService.getAllStorages();
         return ResponseEntity.ok(storages);
     }
 
     @DeleteMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteStorages(@RequestParam("ids") String idsCSV) {
         if (idsCSV.length() >= 200) {
             throw new InvalidParameterException("CSV length must be less than 200 characters");

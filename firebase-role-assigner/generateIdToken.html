@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Authentication</title>
+  <!-- Import Firebase libraries using ES6 modules -->
+  <script type="module">
+    // Import Firebase functions from the modular SDK
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+    import { getAuth, signInWithCustomToken } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+
+    // Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAUzuH-g6U50MVVfDZOy9YSB-nKEUE4MME",
+  authDomain: "music-app-98f3f.firebaseapp.com",
+  projectId: "music-app-98f3f",
+  storageBucket: "music-app-98f3f.appspot.com",
+  messagingSenderId: "518395851030",
+  appId: "1:518395851030:web:8ebfc04864990a7dee2037",
+  measurementId: "G-PWWNHTX3JR"
+};
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Function to sign in with custom token
+    async function signInWithCustomTokenAndGetIdToken(customToken) {
+      try {
+        // Sign in with custom token
+        const userCredential = await signInWithCustomToken(auth, customToken);
+        // Get the ID token
+        const idToken = await userCredential.user.getIdToken();
+        // Display the ID token in the UI
+        document.getElementById('tokenDisplay').textContent = idToken;
+        return idToken;
+      } catch (error) {
+        console.error('Error signing in with custom token:', error);
+        document.getElementById('tokenDisplay').textContent = 'Error: ' + error.message;
+        throw error;
+      }
+    }
+
+    // Example usage: replace with the custom token received from the server
+    const customToken = `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2lkZW50aXR5dG9vbGtpdC5nb29nbGVhcGlzLmNvbS9nb29nbGUuaWRlbnRpdHkuaWRlbnRpdHl0b29sa2l0LnYxLklkZW50aXR5VG9vbGtpdCIsImlhdCI6MTcyNDY4Mjg3MCwiZXhwIjoxNzI0Njg2NDcwLCJpc3MiOiJmaXJlYmFzZS1hZG1pbnNkay16MmRsbUBtdXNpYy1hcHAtOThmM2YuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay16MmRsbUBtdXNpYy1hcHAtOThmM2YuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJ1aWQiOiJFeUxEaWZjTmVHYlZ5Sk1Yd1NlenZmbkw4UTUzIn0.mvMegixCWdBBUZ3mAnU1fTKbyNXobXlsRiLnzvEQSJQFoXCBpWzwXU6aFmGl6VO-Q_AOofZS-RbeHFqlsbSak8w73sqo8GXlvvOPLBC2Wazb8eQti9J3SEEWsA-GoMPjSjTIPDKV5uf3GirT5hLSTCdkcWLXr3WnrT3hwU_e-aVCuR7M3HvfsEHvCAolZGXGXue32TruCm-_1pH2AkuqAE_JNSDy0wmGoLv5FeYGUkBd88ND6S-UvjYCpMadP8bkha6PgpP47-E2zrRubibsxvH3hbPzxa7mh4YNFOBi2hJi6Gt0T-gr_PFm2IvlRDcdaCBNUInucuXcQ4i2oIQA1g`;
+
+    // Call the function to sign in and get the ID token
+    signInWithCustomTokenAndGetIdToken(customToken);
+  </script>
+</head>
+<body>
+<h1>Firebase Authentication</h1>
+<div id="tokenDisplay">Token will be displayed here</div>
+</body>
+</html>

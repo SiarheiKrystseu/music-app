@@ -26,6 +26,8 @@ services:
       CLOUD_AWS_S3_ENDPOINT: "${CLOUD_AWS_S3_ENDPOINT}"
       RESOURCE_RABBITMQ_EXCHANGE: "${RESOURCE_RABBITMQ_EXCHANGE}"
       RESOURCE_RABBITMQ_QUEUE: "${RESOURCE_RABBITMQ_QUEUE}"
+    volumes:
+        - ./resources/music-app-firebase-adminsdk.json:/config/music-app-firebase-adminsdk.json
     command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-service.jar" ]
     depends_on:
       - configuration-server
@@ -48,6 +50,8 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://storage-db:5432/${POSTGRES_DB_STORAGE}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_STORAGE}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_STORAGE}"
+    volumes:
+      - ./resources/music-app-firebase-adminsdk.json:/config/music-app-firebase-adminsdk.json
     command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "storage-service.jar" ]
     depends_on:
       - configuration-server
@@ -68,6 +72,8 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://songs-db:5432/${POSTGRES_DB_SONGS}"
       SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER_SONGS}"
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD_SONGS}"
+    volumes:
+      - ./resources/music-app-firebase-adminsdk.json:/config/music-app-firebase-adminsdk.json
     command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "song-service.jar"]
     depends_on:
       - configuration-server
@@ -106,6 +112,8 @@ services:
       SPRING_RABBITMQ_PORT: "5672"
       SPRING_RABBITMQ_USERNAME: "test"
       SPRING_RABBITMQ_PASSWORD: "test"
+    volumes:
+      - ./resources/music-app-firebase-adminsdk.json:/config/music-app-firebase-adminsdk.json
     command: [ "dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "resource-processor.jar" ]
     depends_on:
       - configuration-server
@@ -114,6 +122,8 @@ services:
       - rabbitmq
     networks:
       - app-network
+    deploy:
+      replicas: 2
 
   api-gateway:
     build:
@@ -126,6 +136,8 @@ services:
       SPRING_APPLICATION_NAME: "${API_GATEWAY_NAME}"
       SERVER_PORT: "${API_GATEWAY_PORT}"
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: "${EUREKA_CLIENT_SERVICEURL}"
+    volumes:
+      - ./resources/music-app-firebase-adminsdk.json:/config/music-app-firebase-adminsdk.json
     command: ["dockerize", "-wait", "tcp://configuration-server:${CONFIG_SERVER_PORT}", "-timeout", "1m", "java", "-jar", "api-gateway.jar"]
     depends_on:
       - configuration-server

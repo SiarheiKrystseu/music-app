@@ -1,26 +1,15 @@
 package com.krystseu.microservices.resourceprocessor.service.impl;
 
-import com.krystseu.microservices.resourceprocessor.exception.FileParsingException;
+import com.krystseu.microservices.resourceprocessor.firebase.FirebaseAuthUtils;
 import com.krystseu.microservices.resourceprocessor.service.ResourceServiceClient;
 import com.krystseu.microservices.resourceprocessor.service.SongServiceClient;
-import org.apache.tika.exception.TikaException;
-import org.apache.tika.metadata.Metadata;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceProcessorImplTest {
@@ -37,9 +26,13 @@ class ResourceProcessorImplTest {
     @InjectMocks
     private ResourceProcessorImpl resourceProcessor;
 
+    @Mock
+    private FirebaseAuthUtils firebaseAuthUtils;
+
+
     @BeforeEach
     void setUp() {
-        resourceProcessor = new ResourceProcessorImpl(resourceServiceClient, songServiceClient, rabbitTemplate);
+        resourceProcessor = new ResourceProcessorImpl(resourceServiceClient, songServiceClient, rabbitTemplate, firebaseAuthUtils);
         ReflectionTestUtils.setField(resourceProcessor, "resourceAckQueue", "ackQueue");
     }
 

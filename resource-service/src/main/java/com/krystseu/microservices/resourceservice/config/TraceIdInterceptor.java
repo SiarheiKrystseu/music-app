@@ -19,7 +19,6 @@ public class TraceIdInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         log.info("TraceIdInterceptor handle request...");
         String traceId = request.getHeader(TRACE_ID_HEADER);
-        log.info("traceId is: {}", traceId);
         if (traceId == null || traceId.isEmpty()) {
             traceId = UUID.randomUUID().toString();
             response.setHeader(TRACE_ID_HEADER, traceId);

@@ -1,7 +1,6 @@
 package com.krystseu.microservices.storageservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.krystseu.microservices.storageservice.controller.StorageController;
 import com.krystseu.microservices.storageservice.model.Storage;
 import com.krystseu.microservices.storageservice.model.StorageType;
 import com.krystseu.microservices.storageservice.service.StorageService;
@@ -25,6 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(StorageController.class)
@@ -37,6 +37,7 @@ class StorageControllerTest {
     private StorageService storageService;
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testCreateStorage() throws Exception {
         Storage storage = new Storage();
         storage.setId(1L);
@@ -54,6 +55,7 @@ class StorageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void testGetAllStorages() throws Exception {
         Storage storage1 = new Storage();
         storage1.setId(1L);
@@ -78,6 +80,7 @@ class StorageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void testGetStorage() throws Exception {
         Storage storage = new Storage();
         storage.setId(1L);
@@ -97,6 +100,7 @@ class StorageControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "ADMIN")
     void testDeleteStorages() throws Exception {
         String idsCSV = "1,2,3";
         List<Long> ids = Arrays.asList(1L, 2L, 3L);
